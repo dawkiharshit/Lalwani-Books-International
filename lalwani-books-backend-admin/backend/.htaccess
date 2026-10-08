@@ -1,0 +1,12 @@
+# On the live host the API subdomain's web root is THIS folder (the one holding
+# artisan and .env), not public/. Without this file the API only answers under
+# /public/..., and composer.json, artisan and the rest of the source can be
+# downloaded by anyone.
+#
+# Every request is handed to public/, where Laravel's own .htaccess and
+# index.php take over — exactly as if the subdomain pointed at public/.
+# Harmless when it already does: then this folder is never served.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

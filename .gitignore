@@ -1,0 +1,25 @@
+# Never commit: deployment packages (server keys, database copy, diag.php),
+# old archives, local tool settings, and any environment file with real values.
+/deploy/
+/archive/
+.claude/
+
+# Environment files anywhere — only the *.example templates are committed.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+
+# Data and bundles that never belong in source control.
+*.sql
+*.sql.gz
+*.zip
+
+# Dependencies and builds (each app's own .gitignore covers the rest).
+node_modules/
+vendor/
+.next/
+
+# OS clutter
+.DS_Store
+Thumbs.db

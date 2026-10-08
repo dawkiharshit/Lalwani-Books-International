@@ -1,0 +1,768 @@
+@import "tailwindcss";
+
+/*
+ * Lalwani Books International — storefront theme, after the Bookory book-store
+ * layout: Sora throughout, one coral accent (it is also the logo's coral),
+ * near-black headings, grey body copy, hairline borders instead of shadows.
+ *
+ * The token names are inherited from the template this storefront grew from
+ * (rose, maroon, blush...). They are kept so every page picks up the new look
+ * at once; read them as roles, not colours:
+ *   rose-*   the coral accent        maroon-*  the dark #282828 surfaces
+ *   blush-*  light tints + borders   ink/cocoa/fog  heading/body/muted text
+ */
+@theme {
+  /* Tints and hairlines. 100 is the peach of the hero and page bands. */
+  --color-blush-50: #fff8f5;
+  --color-blush-100: #fcf1ed;
+  --color-blush-150: #f2f2f2;
+  --color-blush-200: #e6e6e6;
+  --color-blush-300: #d4d4d4;
+
+  /* Coral. 600 is the brand coral (#F65D4E), 700 its hover. Coral on white
+     is 3.2:1 — fine for buttons with white bold text and large prices, never
+     for small body copy. */
+  --color-rose-100: #feebe8;
+  --color-rose-300: #fbb3ab;
+  --color-rose-400: #f8877b;
+  --color-rose-500: #f7705f;
+  --color-rose-600: #f65d4e;
+  --color-rose-700: #e5402f;
+  /* Deep coral for small coral text on peach (4.6:1 on blush-100). */
+  --color-rose-800: #c73a2a;
+
+  /* Footer: library green, parchment type and a mustard accent. On pine-900,
+     parchment/70 reads at 6.4:1, mustard 7.2:1 and rose-400 5.9:1. */
+  --color-pine-950: #0b1f1a;
+  --color-pine-900: #12302a;
+  --color-pine-800: #1a4038;
+  --color-pine-700: #24574b;
+  --color-parchment: #efe6d6;
+  --color-mustard: #e8b04b;
+  --color-accent: #f65d4e;
+
+  /* Dark surfaces: the top bar, footer and dark cards. */
+  --color-maroon-600: #3d3d3d;
+  --color-maroon-700: #333333;
+  --color-maroon-800: #282828;
+  --color-maroon-900: #1d1d1d;
+
+  --color-ink: #111111;
+  --color-cocoa: #444444;
+  /* #6b6b6b, not lighter: 5.3:1 on white, the floor for 12px meta text. */
+  --color-fog: #6b6b6b;
+  /* Rating stars. */
+  --color-gold: #f5a623;
+  --color-cream: #ffffff;
+
+  /* Admin sidebar icon tints on the dark sidebar — one hue per kind of screen. */
+  --color-nav-sky: #9ec9ea;
+  --color-nav-mint: #9fdcc0;
+  --color-nav-honey: #e8c479;
+  --color-nav-rose: #f6a9a1;
+  --color-nav-coral: #efb391;
+  --color-nav-lilac: #c5b8ee;
+  --color-nav-cream: #e7e2de;
+
+  --font-symbol: "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols", "Segoe UI Emoji";
+  /* One family, as in the reference: Sora for headings and body alike.
+     `font-serif` is kept as the heading utility name across the codebase. */
+  --font-serif: var(--font-sora), "Segoe UI", Arial, var(--font-symbol), sans-serif;
+  --font-sans: var(--font-sora), "Segoe UI", Arial, var(--font-symbol), sans-serif;
+  --font-accent: var(--font-sora), "Segoe UI", Arial, sans-serif;
+
+  --radius-card: 0.75rem;
+  --radius-hero: 1.25rem;
+
+  --shadow-soft: 0 6px 24px -10px rgba(0, 0, 0, 0.12);
+  --shadow-lift: 0 18px 50px -18px rgba(0, 0, 0, 0.25);
+}
+
+body {
+  background: #fff;
+  color: var(--color-cocoa);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-rose-600);
+  color: #fff;
+}
+
+/* Page width shared by header, sections and footer. */
+@utility container-shop {
+  width: 100%;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 40rem) { padding-inline: 1.5rem; }
+  @media (width >= 64rem) { padding-inline: 2rem; }
+}
+
+/* Bordered white panel — Bookory frames content with hairlines, not shadows. */
+@utility card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-blush-200);
+}
+
+@utility maroon-card {
+  background: var(--color-maroon-800);
+  border-radius: var(--radius-card);
+  color: #fff;
+}
+
+@utility hero-card {
+  background: var(--color-blush-100);
+  border-radius: var(--radius-hero);
+}
+
+/* Decorative glyphs: symbol face first, never inherit heading letter-spacing. */
+@utility glyph {
+  font-family: var(--font-symbol), var(--font-sans);
+  letter-spacing: normal;
+  line-height: 1;
+}
+
+/* Kept for pages that still reference it; renders as nothing on the new theme. */
+@utility star-field {
+  background-image: none;
+}
+
+@utility input-base {
+  width: 100%;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-blush-200);
+  background: #fff;
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-base:focus {
+  border-color: var(--color-rose-600);
+  box-shadow: 0 0 0 3px rgba(246, 93, 78, 0.18);
+}
+
+/* Headings: Sora semibold, slightly tight, near-black — the Bookory voice.
+   In the base layer so a utility such as text-white still wins over them. */
+@layer base {
+  .font-serif {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  h1, h2, h3, h4 {
+    color: var(--color-ink);
+  }
+}
+
+/* iOS Safari zooms the page in whenever a focused field is under 16px, and
+   never zooms back out. Bumping just the phone breakpoint keeps the desktop
+   type scale intact. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* The plain system hand on everything clickable. Browsers only give <a href>
+   a pointer by default — buttons, selects and role="button" keep the arrow —
+   so this evens them out without replacing the OS cursor. */
+a[href],
+button,
+select,
+summary,
+[role="button"],
+[role="tab"],
+label[for],
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Admin-authored HTML in the About founder story — give the raw tags the
+   same rhythm as the rest of the page. */
+.about-story p { margin-bottom: 0.85rem; }
+.about-story p:last-child { margin-bottom: 0; }
+.about-story h1,
+.about-story h2,
+.about-story h3 {
+  font-family: var(--font-serif);
+  color: var(--color-ink);
+  font-size: 1.25rem;
+  line-height: 1.3;
+  margin: 1.25rem 0 0.5rem;
+}
+.about-story strong { color: var(--color-ink); font-weight: 600; }
+.about-story .highlight,
+.about-story em { color: var(--color-accent); font-style: normal; }
+.about-story ul { list-style: disc; padding-left: 1.15rem; margin-bottom: 0.85rem; }
+.about-story li { margin-bottom: 0.3rem; }
+.about-story a { color: var(--color-rose-600); text-decoration: underline; }
+
+/* Printing an invoice: drop the site chrome and let the sheet fill the page. */
+@media print {
+  header, footer, nav, .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .invoice-sheet {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  a[href]::after { content: none !important; }
+}
+
+/* Drop-down entrance: the Categories menu, the phone menu's category list and
+   the pinned bar's search card. */
+@keyframes shopmenu {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* The shop's phone Filters sheet (collection/toolbar.tsx) slides in from the left. */
+@keyframes filterSheetIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.filter-sheet {
+  animation: filterSheetIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Phones and tablets, where the header is sticky (Header.tsx, max-lg:sticky):
+   whatever gets scrolled into view stops below the header, not underneath it.
+   That includes a new page (Next.js counts a page whose content doesn't start
+   this far down as not yet at the top, and scrolls it up), a #link and a
+   focused field. The header's live height (kept by Header.tsx) plus the 2rem
+   the shop's <main> leaves above every page (pt-8), so even a slightly
+   scrolled page goes back to the very top. Pages without the header (sign-in,
+   admin) leave the variable unset, and -2rem + 2rem gives them no padding. */
+@media (width < 64rem) {
+  html {
+    scroll-padding-top: calc(var(--phone-header-h, -2rem) + 2rem);
+  }
+}
+
+/* Payment-logos ticker — a pure-CSS loop, so it scrolls on every screen and
+   never depends on JS measuring a hidden pane. The track holds two identical
+   copies; sliding it left by half its width lands copy B exactly where copy A
+   began, so the wrap is seamless. Duration is set inline from the item count
+   to keep the speed even however many marks there are. */
+@keyframes pay-ticker {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+.pay-ticker__track {
+  display: flex;
+  width: max-content;
+  animation: pay-ticker linear infinite;
+}
+.pay-ticker:hover .pay-ticker__track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pay-ticker { overflow-x: auto; }
+  .pay-ticker__track { animation: none; }
+}
+
+/* Circles under the home hero (components/home/circles-slider.tsx). The same
+   two-copy loop as the payment ticker, running left to right; .circle-slider--on
+   is set only when the row is wider than the frame, otherwise it sits centred.
+   The padding (undone by the negative margin) gives each circle's hover ring —
+   offset 4px plus 2px — room inside the clipping box; the plain scroll
+   container before it cut the ring off along the top. */
+@keyframes circle-slide {
+  from { transform: translate3d(-50%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+.circle-slider {
+  overflow: hidden;
+  padding: 0.75rem 0.5rem;
+  margin: -0.75rem -0.5rem 0;
+}
+.circle-slider__track {
+  display: flex;
+  justify-content: center;
+}
+.circle-slider--on {
+  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+}
+.circle-slider--on .circle-slider__track {
+  width: max-content;
+  justify-content: flex-start;
+  animation: circle-slide linear infinite;
+}
+.circle-slider--on:hover .circle-slider__track,
+.circle-slider--on:focus-within .circle-slider__track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .circle-slider--on { overflow-x: auto; mask-image: none; }
+  .circle-slider--on .circle-slider__track { animation: none; }
+}
+
+/* Generic marquee (the testimonials on About): the same two-copy loop as the
+   circles, left to right; .marquee--on is set only when the row is wider than
+   its frame, otherwise the single row sits centred. Each copy carries one gap
+   of trailing padding so sliding by half the track lands exactly one copy on,
+   with no jump. The vertical padding (undone by the margin) keeps the cards'
+   shadows inside the clipping box. */
+@keyframes marquee-slide {
+  from { transform: translate3d(-50%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+.marquee {
+  --marquee-gap: 1.25rem;
+  overflow: hidden;
+  padding: 1rem 0;
+  margin: -1rem 0;
+}
+.marquee__track { display: flex; justify-content: center; }
+.marquee__copy { display: flex; flex: none; gap: var(--marquee-gap); }
+.marquee__copy--dup { display: none; }
+.marquee--on { mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent); }
+.marquee--on .marquee__track {
+  width: max-content;
+  justify-content: flex-start;
+  animation: marquee-slide linear infinite;
+}
+.marquee--on .marquee__copy { padding-inline-end: var(--marquee-gap); }
+.marquee--on .marquee__copy--dup { display: flex; }
+.marquee--on:hover .marquee__track,
+.marquee--on:focus-within .marquee__track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .marquee--on { overflow-x: auto; mask-image: none; }
+  .marquee--on .marquee__track { animation: none; }
+  .marquee--on .marquee__copy--dup { display: none; }
+}
+
+/* Rich text rendered from admin-authored HTML (blog posts). Styles the common
+   tags so a post reads well without a typography plugin. */
+.richtext {
+  color: var(--color-cocoa);
+  font-size: 13.5px;
+  line-height: 1.85;
+}
+.richtext > :first-child { margin-top: 0; }
+.richtext h2 { color: var(--color-ink); font-family: var(--font-serif, Georgia, serif); font-size: 1.5rem; line-height: 1.25; margin: 1.6rem 0 0.6rem; }
+.richtext h3 { color: var(--color-ink); font-family: var(--font-serif, Georgia, serif); font-size: 1.2rem; line-height: 1.3; margin: 1.3rem 0 0.5rem; }
+.richtext p { margin: 0 0 1rem; }
+.richtext a { color: var(--color-rose-600); text-decoration: underline; text-underline-offset: 2px; }
+.richtext strong { color: var(--color-ink); font-weight: 600; }
+.richtext em { font-style: italic; }
+.richtext ul, .richtext ol { margin: 0 0 1rem 1.25rem; }
+.richtext ul { list-style: disc; }
+.richtext ol { list-style: decimal; }
+.richtext li { margin: 0.3rem 0; }
+.richtext blockquote { margin: 1.2rem 0; padding: 0.4rem 0 0.4rem 1rem; border-left: 3px solid var(--color-blush-200); color: var(--color-ink); font-style: italic; }
+.richtext img { border-radius: 0.9rem; margin: 1.2rem 0; }
+.richtext hr { border: 0; border-top: 1px solid var(--color-blush-200); margin: 1.6rem 0; }
+
+/* Dual-handle price slider (collection filters). Two range inputs share one
+   rail: the input is click-through so it never blocks the products behind it,
+   and only the round thumbs catch the pointer, so both handles stay grabbable. */
+.price-rail {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.price-rail::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  border: 2px solid var(--color-rose-600);
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(246, 93, 78, 0.35);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.price-rail::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  border: 2px solid var(--color-rose-600);
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(246, 93, 78, 0.35);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.price-rail::-webkit-slider-runnable-track {
+  background: transparent;
+}
+.price-rail::-moz-range-track {
+  background: transparent;
+}
+
+/* Hero slide copy: a short rise as each banner cross-fades in. Motion-reduced
+   users never see it — the slider stops advancing entirely in that case. */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────────────────
+   One slim rose pill on a clear track, held off the ends so it never runs
+   into a rounded corner.
+
+   Why the webkit pseudo-elements and not the standard properties: Chrome and
+   Edge ignore every ::-webkit-scrollbar rule on an element that has
+   `scrollbar-color` or `scrollbar-width` set, and `scrollbar-color` inherits.
+   Declaring that pair on `*`, as this file used to, handed Chromium its own
+   system bar: Windows arrow buttons and a painted track running square into
+   the 14px corners of every textarea and the 24px corners of every card. The
+   standard properties cannot inset a track or drop the arrows, so they now go
+   to Firefox alone, which has no webkit pseudo-elements (see @supports below). */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  /* The gutter itself, behind the track: clear, so only the pill shows. */
+  background: transparent;
+}
+
+html {
+  background: #fff;
+}
+
+/* Mouse users get a floating page scrollbar (PageScrollbar.tsx) that sits over
+   the content, so the browser's own page bar and its reserved white gutter
+   are switched off. Only the page itself: scroll boxes inside it keep the
+   coral bar below. The class is set by the component, so without JavaScript
+   the normal scrollbar stays. */
+html.overlay-scrollbar {
+  scrollbar-width: none;
+}
+html.overlay-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Just the bar — no up/down (or left/right) arrow buttons. */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Clear, so only the pill shows. A painted strip is what collided with the
+   rounded corners. */
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Keep the pill off the ends of the track. 12px clears the curve of a 24px
+   card corner along the line where the pill sits, 3px in from the edge. */
+::-webkit-scrollbar-track:vertical {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+::-webkit-scrollbar-track:horizontal {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+/* The page bar runs down the square edge of the window, with no corner to
+   clear, so it only needs a breath of space at each end. */
+html::-webkit-scrollbar-track:vertical {
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-rose-400);
+  border-radius: 999px;
+  /* A transparent border with the background clipped inside it insets the
+     thumb: a 4px pill floating in the 10px gutter. */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Wider and darker under the pointer, so it reads as something to grab.
+   background-color rather than the `background` shorthand, which would reset
+   background-clip and paint the pill out to the full gutter. */
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-rose-500);
+  border-width: 2px;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--color-rose-600);
+  border-width: 2px;
+}
+
+/* Phones and tablets. A finger scrolls the content, nobody drags the thumb,
+   so the bar only has to say "there is more": a 4px pill in a 6px gutter,
+   close to the platform's own overlay bars. Android Chrome draws this; iOS
+   ignores scrollbar styling and keeps its native overlay. */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    border-width: 1px;
+  }
+}
+
+/* Firefox only. It cannot inset a track or round the ends, but a clear track
+   still stops the bar painting over rounded corners. Chromium and Safari both
+   parse the selector and skip this block, which is the point: the standard
+   properties would switch off their styling above. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-rose-400) transparent;
+  }
+}
+
+/* The admin sidebar still scrolls on short screens, but shows no bar — wheel,
+   touch and keyboard scrolling keep working.
+
+   Deliberately plain CSS and not `@utility`: Tailwind compiles a utility into
+   `@layer utilities`, and an unlayered rule beats a layered one however
+   specific the layered one is, so the global rules above would silently win. */
+.scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* A slim, quiet scrollbar for lists that scroll inside a panel (Popular Authors). */
+.soft-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-blush-200) transparent;
+}
+.soft-scroll::-webkit-scrollbar { width: 6px; }
+.soft-scroll::-webkit-scrollbar-thumb { background: var(--color-blush-200); border-radius: 999px; }
+.soft-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Loading ────────────────────────────────────────────────────────────
+   The book-spine loader (components/loading/BookLoader.tsx), the veil of the
+   site-wide loading screen (LoadingLayer.tsx), the first-visit splash and the
+   shimmer that stands in for a product photo while it arrives. The global
+   reduced-motion rule below holds every one of these still. */
+.book-loader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.book-loader__shelf {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 6px;
+}
+.book-loader__spine {
+  display: block;
+  border-radius: 3px 3px 1px 1px;
+  box-shadow: inset -3px 0 0 rgba(0, 0, 0, 0.13);
+  /* A pale title band near the top and a darker one near the foot, as on the footer shelf. */
+  background-image: linear-gradient(
+    to bottom,
+    transparent 16%, rgba(255, 255, 255, 0.45) 16%, rgba(255, 255, 255, 0.45) 22%,
+    transparent 22%, transparent 74%, rgba(0, 0, 0, 0.15) 74%, rgba(0, 0, 0, 0.15) 80%, transparent 80%
+  );
+  transform-origin: bottom center;
+  animation: spineHop 1.25s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes spineHop {
+  0%, 52%, 100% { transform: translateY(0) rotate(0); }
+  18%           { transform: translateY(-34%) rotate(-5deg); }
+  34%           { transform: translateY(0) rotate(0) scaleY(0.93); }
+  42%           { transform: translateY(0) scaleY(1); }
+}
+.book-loader__board {
+  display: block;
+  margin-top: 3px;
+  height: 4px;
+  width: 100%;
+  border-radius: 999px;
+  background: #ead8ce;
+}
+
+/* The veil fades in only once the wait is long enough to notice. */
+.loading-veil { animation: veilIn 0.25s ease-out 0.3s both; }
+.loading-veil > div { animation: veilCardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+@keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes veilCardIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* A soft blush shimmer for content on its way (skeleton blocks, product photos).
+   The light sweeps across on a transform, which the compositor handles, so a
+   page full of covers still waiting costs next to nothing. Layered, so a
+   utility such as `absolute` on the same element still wins. */
+@layer components {
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: #fcf1ed;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.75) 50%, transparent 80%);
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* First visit in a tab: the splash shown while the page arrives. The boot
+   script in the root layout adds .splash-on to <html> (never on the admin,
+   never twice in a session), then .splash-done once the page is ready; with
+   scripts off it never appears at all. */
+.boot-splash { display: none; }
+.splash-on .boot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background:
+    radial-gradient(60% 50% at 50% 38%, rgba(255, 255, 255, 0.9), transparent 70%),
+    linear-gradient(160deg, #fde3da 0%, #fcf1ed 55%, #fbf6f2 100%);
+}
+.splash-done .boot-splash {
+  opacity: 0;
+  visibility: hidden;
+  /* Taps reach the page as soon as it starts fading, not after. */
+  pointer-events: none;
+  transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+}
+.boot-splash__logo { height: 56px; width: auto; animation: fadeUp 0.5s ease-out both; }
+
+/* ── Motion ─────────────────────────────────────────────────────────────
+   Scroll reveal: `data-reveal` fades an element up when it scrolls into
+   view; `data-reveal-stagger` does the same to each child of a grid or rail,
+   one after another. RevealObserver adds `is-visible`.
+
+   Elements are only hidden once `reveal-ready` is on <html>, which an inline
+   script in the root layout sets before first paint — so without JavaScript,
+   or with reduced motion, everything simply shows. Opacity and transform
+   only, and transform ends at `none`: a lingering transform would turn the
+   element into the containing block for any position:fixed overlay inside. */
+.reveal-ready [data-reveal],
+.reveal-ready [data-reveal-stagger] > * {
+  opacity: 0;
+  transform: translateY(28px);
+  /* The stagger delay (--rd) applies to the reveal only; the hover
+     properties a card animates itself stay instant to respond. */
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--rd, 0s),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--rd, 0s),
+    translate 0.3s ease-out,
+    rotate 0.5s ease-out,
+    scale 0.5s ease-out,
+    box-shadow 0.3s ease-out,
+    border-color 0.3s ease-out;
+}
+.reveal-ready [data-reveal].is-visible,
+.reveal-ready [data-reveal-stagger].is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+[data-reveal-stagger] > *:nth-child(2) { --rd: 0.07s; }
+[data-reveal-stagger] > *:nth-child(3) { --rd: 0.14s; }
+[data-reveal-stagger] > *:nth-child(4) { --rd: 0.21s; }
+[data-reveal-stagger] > *:nth-child(5) { --rd: 0.28s; }
+[data-reveal-stagger] > *:nth-child(6) { --rd: 0.35s; }
+[data-reveal-stagger] > *:nth-child(7) { --rd: 0.42s; }
+[data-reveal-stagger] > *:nth-child(n + 8) { --rd: 0.49s; }
+
+/* Hero copy: each line rises in turn whenever its slide becomes active. */
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-copy-in > * { animation: heroIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hero-copy-in > *:nth-child(2) { animation-delay: 0.12s; }
+.hero-copy-in > *:nth-child(3) { animation-delay: 0.24s; }
+.hero-copy-in > *:nth-child(4) { animation-delay: 0.36s; }
+
+/* Deals slider: the active dot fills over the slide's five seconds, and the
+   incoming offer's words and books rise in the way the hero copy does. */
+@keyframes dealProgress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.deal-progress { transform-origin: left center; animation: dealProgress 5s linear forwards; }
+.deal-slide--active .deal-copy > * { animation: heroIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.deal-slide--active .deal-copy > *:nth-child(2) { animation-delay: 0.08s; }
+.deal-slide--active .deal-copy > *:nth-child(3) { animation-delay: 0.16s; }
+.deal-slide--active .deal-copy > *:nth-child(4) { animation-delay: 0.24s; }
+.deal-slide--active .deal-books > li { animation: heroIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.deal-slide--active .deal-books > li:nth-child(2) { animation-delay: 0.1s; }
+.deal-slide--active .deal-books > li:nth-child(3) { animation-delay: 0.2s; }
+
+/* The coral underline under the hero phrase draws itself in. */
+@keyframes drawLine {
+  from { stroke-dashoffset: 210; }
+  to   { stroke-dashoffset: 0; }
+}
+.hero-copy-in .draw-line path {
+  stroke-dasharray: 210;
+  animation: drawLine 1s 0.5s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+/* Hero art: covers drop into the stack, then float gently. */
+@keyframes coverIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.cover-in { animation: coverIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.float-y  { animation: floatY 6s ease-in-out infinite; }
+
+/* Slow drifting blobs behind the hero and the deals panel. */
+@keyframes blobDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(18px, -14px) scale(1.06); }
+  66%      { transform: translate(-12px, 10px) scale(0.96); }
+}
+.blob-drift { animation: blobDrift 14s ease-in-out infinite; }
+
+/* Page change: a soft fade (opacity only — see the note on transforms above). */
+@keyframes pageIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-in { animation: pageIn 0.45s ease-out both; }
