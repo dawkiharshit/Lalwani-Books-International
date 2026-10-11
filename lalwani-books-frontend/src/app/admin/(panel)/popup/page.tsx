@@ -26,6 +26,14 @@ export default function AdminPopup() {
         },
         {
           title: "Content",
+          images: [
+            {
+              settingKey: "popup_image",
+              label: "Popup image",
+              hint: "Optional. Shown whole, never cropped: beside the text on computers, above it on phones. JPG, PNG or WebP, up to 4 MB.",
+              aspect: "landscape",
+            },
+          ],
           fields: [
             { key: "popup_title", label: "Title", placeholder: "Join our reading list" },
             { key: "popup_discount", label: "Offer badge", placeholder: "10% OFF" },

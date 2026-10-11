@@ -77,7 +77,7 @@ function CashOnDelivery() {
           <button
             type="button"
             onClick={load}
-            className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-rose-600"
+            className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-rose-700"
           >
             Retry
           </button>

@@ -94,7 +94,7 @@ export default function AccountPage() {
             className={`inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[12px] font-medium transition-colors ${
               editing
                 ? "border border-blush-200 text-cocoa hover:bg-blush-100 hover:text-ink"
-                : "bg-ink text-white hover:bg-rose-600"
+                : "bg-ink text-white hover:bg-rose-700"
             }`}
           >
             {editing ? <CloseIcon className="h-3.5 w-3.5" /> : <PencilIcon className="h-3.5 w-3.5" />}

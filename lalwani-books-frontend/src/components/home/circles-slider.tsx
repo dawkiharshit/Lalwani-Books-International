@@ -18,7 +18,7 @@ function Circle({ r, tabbable = true }: { r: ContentRow; tabbable?: boolean }) {
         ) : r.initials ? (
           <span
             className="absolute inset-0 flex items-center justify-center text-[1.5rem] font-semibold text-white transition-transform duration-500 group-hover:scale-110"
-            style={{ background: `linear-gradient(135deg, ${r.tint?.[0] ?? "#f65d4e"}, ${r.tint?.[1] ?? "#c4382a"})` }}
+            style={{ background: `linear-gradient(135deg, ${r.tint?.[0] ?? "#0d4377"}, ${r.tint?.[1] ?? "#042b52"})` }}
           >
             {r.initials}
           </span>

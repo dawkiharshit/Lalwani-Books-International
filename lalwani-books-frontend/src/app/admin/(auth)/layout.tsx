@@ -28,7 +28,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         {/* The only way back to the store, so it is a link rather than an image. */}
         <div className="flex justify-center pt-6">
           <Link href="/" aria-label={settings.site_name || "Lalwani Books International"}>
-            <Brand logo={settings.site_logo} name={settings.site_name} height={64} />
+            <Brand logo={settings.site_logo} name={settings.site_name} height={88} />
           </Link>
         </div>
 

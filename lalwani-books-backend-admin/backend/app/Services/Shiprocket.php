@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Product;
 use App\Support\GatewayCredentials;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +15,9 @@ use RuntimeException;
  * Shiprocket adhoc-order creation, courier assignment and tracking.
  *
  * The login token is valid for 10 days; it is cached for 9 so a burst of
- * dispatches does not re-authenticate on every call.
+ * dispatches does not re-authenticate on every call. Shiprocket can still end
+ * a token early, so every call goes through send(), which signs in again once
+ * when the token is turned down.
  */
 class Shiprocket
 {
@@ -85,6 +88,58 @@ class Shiprocket
         return Http::withToken(self::token())->acceptJson()->timeout(25);
     }
 
+    /**
+     * One Shiprocket call with the cached token, signing in again once if
+     * Shiprocket says the token is no longer good.
+     *
+     * Shiprocket can end a token before its 10 days are up, e.g. when the same
+     * API user signs in from somewhere else (this shop's local copy and the
+     * live site share one) or its password changes. The rejected token used to
+     * stay cached for the rest of its 9 days, so every Send to Shiprocket,
+     * courier booking and delivery quote failed with a bare "token_expired".
+     */
+    private static function send(string $method, string $url, array $data = []): Response
+    {
+        $res = self::client()->{$method}($url, $data);
+
+        if (! self::tokenRejected($res)) {
+            return $res;
+        }
+
+        Log::info('Shiprocket turned down the saved token; signing in again', ['status' => $res->status()]);
+        self::token(fresh: true);
+        $res = self::client()->{$method}($url, $data);
+
+        // A token fresh from the login being refused too is not something a
+        // retry fixes; say where to look instead of repeating Shiprocket's code.
+        if (self::tokenRejected($res)) {
+            Log::error('Shiprocket refused a freshly issued token', ['status' => $res->status(), 'body' => $res->body()]);
+            $said = self::readableError($res->json(), '');
+
+            throw new RuntimeException(
+                'Shiprocket did not accept this store\'s login'.($said !== '' ? ' ("'.$said.'")' : '').', even after signing in again. '
+                .'In admin → Delivery press "Test Shiprocket login"; if that fails too, check the API user in Shiprocket → Settings → API.'
+            );
+        }
+
+        return $res;
+    }
+
+    /** Shiprocket's ways of saying the token is no good: a 401, or a 400/403 that talks about the token. */
+    private static function tokenRejected(Response $res): bool
+    {
+        if ($res->status() === 401) {
+            return true;
+        }
+
+        $said = strtolower(implode(' ', array_filter([
+            is_string($res->json('message')) ? $res->json('message') : null,
+            is_string($res->json('error')) ? $res->json('error') : null,
+        ])));
+
+        return in_array($res->status(), [400, 403], true) && str_contains($said, 'token');
+    }
+
     /** Is this PIN code deliverable, and what would it cost? */
     public static function serviceability(string $pin, float $weightKg = 0.5, bool $cod = false): array
     {
@@ -96,7 +151,7 @@ class Shiprocket
             throw new RuntimeException('Set the Shiprocket pickup PIN code before asking for rates.');
         }
 
-        $res = self::client()->get(self::base().'/courier/serviceability/', [
+        $res = self::send('get', self::base().'/courier/serviceability/', [
             'pickup_postcode' => $pickup,
             'delivery_postcode' => $pin,
             'weight' => $weightKg,
@@ -176,7 +231,7 @@ class Shiprocket
             $payload['channel_id'] = $cid;
         }
 
-        $res = self::client()->post(self::base().'/orders/create/adhoc', $payload);
+        $res = self::send('post', self::base().'/orders/create/adhoc', $payload);
         $data = is_array($res->json()) ? $res->json() : [];
 
         // Only an order and shipment id mean Shiprocket made the order. It can
@@ -293,7 +348,7 @@ class Shiprocket
             $payload['channel_id'] = $cid;
         }
 
-        $res = self::client()->post(self::base().'/orders/create/return', $payload);
+        $res = self::send('post', self::base().'/orders/create/return', $payload);
         $data = is_array($res->json()) ? $res->json() : [];
 
         // As with orders: no ids means no pickup was booked, whatever the status.
@@ -345,7 +400,7 @@ class Shiprocket
             $body['courier_id'] = $courierId;
         }
 
-        $res = self::client()->post(self::base().'/courier/assign/awb', $body);
+        $res = self::send('post', self::base().'/courier/assign/awb', $body);
 
         if (! $res->successful()) {
             Log::error('Shiprocket AWB failed', ['order' => $order->order_number, 'body' => $res->body()]);
@@ -374,7 +429,7 @@ class Shiprocket
     /** Live tracking for an AWB. */
     public static function track(string $awb): array
     {
-        $res = self::client()->get(self::base().'/courier/track/awb/'.$awb);
+        $res = self::send('get', self::base().'/courier/track/awb/'.$awb);
 
         return $res->json() ?? [];
     }
@@ -386,7 +441,7 @@ class Shiprocket
      */
     public static function pickupLocations(): array
     {
-        $res = self::client()->get(self::base().'/settings/company/pickup');
+        $res = self::send('get', self::base().'/settings/company/pickup');
 
         if (! $res->successful()) {
             return [];

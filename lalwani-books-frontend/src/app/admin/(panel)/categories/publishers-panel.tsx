@@ -240,7 +240,7 @@ export function PublishersPanel() {
                       type="button"
                       onClick={saveEdit}
                       disabled={busy}
-                      className="rounded-full bg-ink px-5 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-600 disabled:opacity-60"
+                      className="rounded-full bg-ink px-5 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
                     >
                       Save
                     </button>
@@ -275,7 +275,7 @@ export function PublishersPanel() {
                     <button
                       type="button"
                       onClick={() => startEdit(row)}
-                      className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-600"
+                      className="rounded-full bg-ink px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-700"
                     >
                       Edit
                     </button>

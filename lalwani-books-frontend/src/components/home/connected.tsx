@@ -56,8 +56,8 @@ export function PromoBand({ settings: s }: { settings: StoreSettings }) {
         data-reveal
         className="relative overflow-hidden rounded-[var(--radius-hero)] bg-maroon-800 px-7 py-12 text-white sm:px-12 lg:flex lg:items-center lg:justify-between lg:gap-10"
       >
-        <span aria-hidden className="blob-drift absolute -right-20 -top-24 h-72 w-72 rounded-full bg-rose-600/40 blur-2xl" />
-        <span aria-hidden className="blob-drift absolute -bottom-28 left-1/4 h-64 w-64 rounded-full bg-[#ffd44d]/20 blur-2xl [animation-delay:-6s]" />
+        <span aria-hidden className="blob-drift absolute -right-20 -top-24 h-72 w-72 rounded-full bg-rose-400/25 blur-2xl" />
+        <span aria-hidden className="blob-drift absolute -bottom-28 left-1/4 h-64 w-64 rounded-full bg-[#e8b04b]/20 blur-2xl [animation-delay:-6s]" />
         <div className="relative max-w-2xl">
           {str(s, "cta_banner_eyebrow") && (
             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-rose-400">{str(s, "cta_banner_eyebrow")}</p>
@@ -72,7 +72,7 @@ export function PromoBand({ settings: s }: { settings: StoreSettings }) {
         {str(s, "cta_banner_button_text") && (
           <Link
             href={str(s, "cta_banner_button_url") || "/collection"}
-            className="relative mt-7 inline-flex shrink-0 items-center gap-2 rounded-full bg-rose-600 px-7 py-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-rose-700 lg:mt-0"
+            className="relative mt-7 inline-flex shrink-0 items-center gap-2 rounded-full bg-mustard px-7 py-3.5 text-[13px] font-semibold text-rose-800 transition-colors hover:bg-[#f0c36b] lg:mt-0"
           >
             {str(s, "cta_banner_button_text")}
             <ChevronIcon className="h-3.5 w-3.5 -rotate-90" strokeWidth={2.2} />

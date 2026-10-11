@@ -153,32 +153,32 @@ function HeroBackdrop() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Warm wash with a cool corner — the translucent mint layer is listed first so it paints on top of the wash. */}
-      <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_100%_100%,rgba(159,216,196,0.4),transparent_62%),radial-gradient(120%_90%_at_15%_10%,#fde3da_0%,#fcf1ed_48%,#fbf6f2_72%)]" />
-      <DottedPaper dot="rgba(199,58,42,0.18)" />
+      <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_100%_100%,rgba(141,177,220,0.35),transparent_62%),radial-gradient(120%_90%_at_15%_10%,#dbe6f3_0%,#eaf0f7_48%,#f6f8fb_72%)]" />
+      <DottedPaper dot="rgba(4,43,82,0.13)" />
       {/* Colour blobs. */}
       <span className="blob-drift absolute -left-24 top-10 h-72 w-72 rounded-full bg-rose-300/35 blur-3xl" />
       <span className="blob-drift absolute -bottom-20 right-1/3 h-64 w-64 rounded-full bg-white/70 blur-3xl [animation-delay:-7s]" />
-      <span className="blob-drift absolute right-[6%] top-[8%] h-56 w-56 rounded-full bg-[#ffd44d]/25 blur-3xl [animation-delay:-4s]" />
-      <span className="blob-drift absolute bottom-[8%] left-[36%] h-48 w-48 rounded-full bg-[#9fd8c4]/30 blur-3xl [animation-delay:-10s]" />
+      <span className="blob-drift absolute right-[6%] top-[8%] h-56 w-56 rounded-full bg-[#e8b04b]/25 blur-3xl [animation-delay:-4s]" />
+      <span className="blob-drift absolute bottom-[8%] left-[36%] h-48 w-48 rounded-full bg-[#8db1dc]/30 blur-3xl [animation-delay:-10s]" />
 
       {/* Line drawings. */}
       <Doodle className="left-[2%] top-[5%] w-14 md:left-[3%] md:top-[8%] md:w-20" delay="-5s" viewBox="0 0 80 100">
         <g className="origin-center -rotate-12">
-          <FoldedPage stroke="#c73a2a" opacity={0.3} />
+          <FoldedPage stroke="#0d4377" opacity={0.3} />
         </g>
       </Doodle>
       <Doodle className="left-[50%] top-[6%] w-32 max-md:hidden lg:w-40" delay="-1s" viewBox="0 0 160 100">
-        <OpenBook stroke="#2f7f7a" opacity={0.36} />
+        <OpenBook stroke="#2b5d92" opacity={0.36} />
       </Doodle>
       <Doodle className="bottom-[8%] left-[3%] w-24 max-md:hidden lg:w-28" delay="-3.5s" viewBox="0 0 160 100">
-        <OpenBook stroke="#f65d4e" opacity={0.3} />
+        <OpenBook stroke="#042b52" opacity={0.3} />
       </Doodle>
-      <Ring className="-bottom-24 -right-20 h-64 w-64 md:-bottom-32 md:-right-24 md:h-80 md:w-80" stroke="#f65d4e" opacity={0.22} />
+      <Ring className="-bottom-24 -right-20 h-64 w-64 md:-bottom-32 md:-right-24 md:h-80 md:w-80" stroke="#042b52" opacity={0.22} />
       <Ribbon className="bottom-[3%] left-[8%] w-[84%] md:bottom-[7%] md:left-[46%] md:w-[26%]" stroke="#e8b04b" opacity={0.5} />
-      <Sparkle className="right-[7%] top-[5%] w-4 md:right-[9%] md:top-[9%] md:w-5" delay="-2.5s" fill="#f65d4e" opacity={0.5} />
-      <Sparkle className="left-[34%] top-[8%] w-3 max-md:hidden" delay="-4.5s" fill="#2f7f7a" opacity={0.45} />
+      <Sparkle className="right-[7%] top-[5%] w-4 md:right-[9%] md:top-[9%] md:w-5" delay="-2.5s" fill="#042b52" opacity={0.5} />
+      <Sparkle className="left-[34%] top-[8%] w-3 max-md:hidden" delay="-4.5s" fill="#2b5d92" opacity={0.45} />
       <Sparkle className="right-[2%] top-[48%] w-3 max-md:hidden" delay="-6s" fill="#e8b04b" opacity={0.65} />
-      <Sparkle className="bottom-[4%] left-[46%] w-3 md:left-[44%]" delay="-3s" fill="#f65d4e" opacity={0.55} />
+      <Sparkle className="bottom-[4%] left-[46%] w-3 md:left-[44%]" delay="-3s" fill="#042b52" opacity={0.55} />
     </div>
   );
 }
@@ -358,7 +358,7 @@ function timeLeft(now: Date, endsAt: string | null) {
 
 export function Countdown({
   endsAt = null,
-  className = "bg-[#ffd44d] text-ink",
+  className = "bg-[#e8b04b] text-ink",
 }: {
   /** ISO time the deal ends; null counts down to Sunday midnight. */
   endsAt?: string | null;

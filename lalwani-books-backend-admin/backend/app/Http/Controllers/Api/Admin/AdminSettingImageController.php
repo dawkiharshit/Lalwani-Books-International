@@ -23,6 +23,8 @@ class AdminSettingImageController extends Controller
         'about_home_image_1' => 'about',
         'about_home_image_2' => 'about',
         'about_home_image_3' => 'about',
+        // The picture in the newsletter popup (admin → Popup Banner).
+        'popup_image' => 'popup',
     ];
 
     public function store(Request $request, string $key)

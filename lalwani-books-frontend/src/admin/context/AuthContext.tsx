@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { ApiError, clientApi } from "@/admin/lib/api";
 import type { User } from "@/admin/lib/types";
+import { forgetSharedSignIn } from "@/lib/auth-sync";
 
 interface AuthState {
   user: User | null;
@@ -125,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    const signedOut = localStorage.getItem("lalwani_admin_token");
     try {
       await clientApi("/auth/logout", { method: "POST" });
     } catch {
@@ -134,6 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("lalwani_admin_user");
     setToken(null);
     setUserState(null);
+    // Signed in through the shop's login page, the shop holds this same token,
+    // just revoked: sign the shop out too.
+    forgetSharedSignIn(signedOut, { token: "lalwani_token", user: "lalwani_user" });
   }, []);
 
   const setUser = useCallback((u: User | null) => {

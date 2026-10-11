@@ -14,6 +14,8 @@ import { ProductVideoButton } from "@/components/ProductVideoButton";
 import { Stars } from "@/components/ui";
 import { DeliveryPromise } from "@/components/DeliveryPromise";
 import { getSettings } from "@/lib/settings";
+import { absoluteUrl, plainSnippet } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 import { ReviewsSection } from "./reviews";
 import { ProductGallery } from "./gallery";
 import { ProductDetails } from "./details";
@@ -44,13 +46,81 @@ export async function generateMetadata({
   try {
     const res = await api<{ data: ProductDetail }>(`/products/${slug}`, { revalidate: 60 });
     const p = res.data;
+    const title = p.author ? `${p.name} by ${p.author}` : p.name;
+    const description =
+      plainSnippet(`${p.author ? `${p.name} by ${p.author}. ` : ""}${p.description ?? ""}`) ||
+      `Buy ${p.name} online — genuine edition, delivered across India.`;
+    const url = `/product/${p.slug}`;
+    const images = p.image ? [p.image] : undefined;
     return {
-      title: p.author ? `${p.name} by ${p.author}` : p.name,
-      description: `${p.author ? `${p.name} by ${p.author}. ` : ""}${p.description.slice(0, 150)}`,
+      title,
+      description,
+      // One address per book, whatever query string a link added.
+      alternates: { canonical: url },
+      openGraph: {
+        type: "book",
+        title,
+        description,
+        url,
+        images,
+        ...(p.author ? { authors: [p.author] } : {}),
+        ...(p.book?.isbn ? { isbn: p.book.isbn } : {}),
+      },
+      twitter: { card: images ? "summary_large_image" : "summary", title, description, images },
     };
   } catch {
     return { title: "Book" };
   }
+}
+
+/**
+ * What a search engine needs to show the book as a product result — price,
+ * stock and rating under the title — plus the breadcrumb trail.
+ */
+function productJsonLd(p: ProductDetail, storeName: string) {
+  const url = absoluteUrl(`/product/${p.slug}`);
+  const images = [p.image, ...(p.gallery ?? []).map((g) => g.url)].filter((u): u is string => Boolean(u)).map(absoluteUrl);
+  const isbn = p.book?.isbn?.replace(/[^0-9Xx]/g, "") || null;
+
+  const product: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": ["Product", "Book"],
+    name: p.name,
+    url,
+    ...(images.length ? { image: images } : {}),
+    ...(plainSnippet(p.description, 5000) ? { description: plainSnippet(p.description, 5000) } : {}),
+    ...(p.sku ? { sku: p.sku } : {}),
+    ...(isbn ? { isbn, ...(isbn.length === 13 ? { gtin13: isbn } : {}) } : {}),
+    ...(p.author ? { author: { "@type": "Person", name: p.author } } : {}),
+    ...(p.book?.publisher ? { publisher: { "@type": "Organization", name: p.book.publisher }, brand: { "@type": "Brand", name: p.book.publisher } } : {}),
+    ...(p.book?.pages ? { numberOfPages: p.book.pages } : {}),
+    ...(p.book?.language ? { inLanguage: p.book.language } : {}),
+    offers: {
+      "@type": "Offer",
+      url,
+      priceCurrency: "INR",
+      price: Number(p.price).toFixed(2),
+      availability: p.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@type": "Organization", name: storeName },
+    },
+    ...(p.rating_count > 0
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Number(p.rating_avg).toFixed(1), reviewCount: p.rating_count } }
+      : {}),
+  };
+
+  const trail = [
+    { name: "Home", item: absoluteUrl("/") },
+    ...(p.category ? [{ name: p.category.name, item: absoluteUrl(`/collection?category=${encodeURIComponent(p.category.slug)}`) }] : []),
+    { name: p.name, item: url },
+  ];
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, ...t })),
+  };
+
+  return [product, breadcrumbs];
 }
 
 export default async function ProductPage({ params }: { params: Promise<Params> }) {
@@ -135,6 +205,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
 
   return (
     <>
+      <JsonLd data={productJsonLd(product, settings.site_name || "Lalwani Books International")} />
       <PageBanner
         as="p"
         title={product.category?.name ?? "Shop"}

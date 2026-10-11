@@ -2,7 +2,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { getSettings } from "@/lib/settings";
 import type { Category } from "@/lib/types";
-import { LalwaniLogo } from "./LalwaniLogo";
+import { BUILT_IN_LOGO, LOGO_RATIO, isBuiltInLogo } from "./Brand";
 import { FooterColumns, type FooterColumn } from "./FooterColumns";
 import { NewsletterForm } from "./NewsletterForm";
 import { SocialIcon3D } from "./SocialIcon3D";
@@ -13,9 +13,6 @@ const DEVELOPER = {
   name: "Dawki Infotech Pvt. Ltd.",
   href: "https://dawkiinfotech.com",
 };
-
-/** The built-in logo files — anything else is a logo uploaded in admin. */
-const BUILT_IN_LOGOS = ["", "/images/brand/logo.svg", "/images/brand/logo.png"];
 
 const EXPLORE: FooterColumn = {
   title: "Explore",
@@ -44,7 +41,7 @@ const SERVICE: FooterColumn = {
  * (seeded), so the server and the browser draw the same books; enough of them
  * to fill a very wide screen, centred and clipped at both edges.
  */
-const SPINE_COLORS = ["#f65d4e", "#e8b04b", "#2f7f7a", "#f5a48a", "#8a5a78", "#9fd8c4", "#c4552f", "#4b6a88", "#efe6d6"];
+const SPINE_COLORS = ["#042b52", "#e8b04b", "#2b5d92", "#a9bfd9", "#5c7896", "#8db1dc", "#b98a2e", "#1b4675", "#e8eef6"];
 const SPINES = (() => {
   let seed = 11;
   const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
@@ -132,8 +129,8 @@ export async function Footer() {
     <footer className="mt-auto pt-6">
       <Bookshelf />
 
-      {/* The shelf board, then the green. */}
-      <div className="relative overflow-hidden border-t-[6px] border-pine-700 bg-pine-900 bg-[radial-gradient(80%_60%_at_0%_0%,rgba(36,87,75,0.6),transparent_65%),radial-gradient(50%_60%_at_100%_100%,rgba(232,176,75,0.09),transparent_60%)] text-parchment">
+      {/* The shelf board, then the navy. */}
+      <div className="relative overflow-hidden border-t-[6px] border-pine-700 bg-pine-900 bg-[radial-gradient(80%_60%_at_0%_0%,rgba(27,70,117,0.6),transparent_65%),radial-gradient(50%_60%_at_100%_100%,rgba(232,176,75,0.09),transparent_60%)] text-parchment">
         {/* Newsletter — admin → Home Page; subscribers appear in admin →
             Messages & Subscribers. */}
         {String(settings.newsletter_enabled ?? "1") !== "0" && (
@@ -162,8 +159,17 @@ export async function Footer() {
           {/* Brand, contact and socials */}
           <div>
             <Link href="/" aria-label={name} className="inline-block">
-              {BUILT_IN_LOGOS.includes(logo) ? (
-                <LalwaniLogo light title={name} className="h-[52px] w-auto" />
+              {isBuiltInLogo(logo) ? (
+                // The built-in logo, turned white for the green footer. The
+                // header has already loaded this file, so it costs nothing.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={BUILT_IN_LOGO}
+                  alt={name}
+                  loading="lazy"
+                  className="h-[84px] w-auto brightness-0 invert"
+                  style={{ aspectRatio: LOGO_RATIO }}
+                />
               ) : (
                 // An uploaded logo may have dark type, so it sits on a white tile.
                 // eslint-disable-next-line @next/next/no-img-element
@@ -234,7 +240,7 @@ export async function Footer() {
 
         {/* The name as a faint outlined signature, rising from the fine print. */}
         <div aria-hidden className="pointer-events-none relative h-[clamp(1.9rem,7.4vw,6.1rem)] select-none overflow-hidden">
-          <p className="absolute inset-x-0 top-0 whitespace-nowrap text-center text-[clamp(2.6rem,10.5vw,8.75rem)] font-semibold leading-[0.8] tracking-[-0.04em] text-transparent [-webkit-text-stroke:1.5px_rgba(239,230,214,0.13)]">
+          <p className="absolute inset-x-0 top-0 whitespace-nowrap text-center text-[clamp(2.6rem,10.5vw,8.75rem)] font-semibold leading-[0.8] tracking-[-0.04em] text-transparent [-webkit-text-stroke:1.5px_rgba(232,238,246,0.13)]">
             {signature}
           </p>
         </div>

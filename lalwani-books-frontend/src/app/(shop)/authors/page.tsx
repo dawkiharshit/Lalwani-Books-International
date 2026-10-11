@@ -40,7 +40,7 @@ export default async function AuthorsPage() {
           <p className="mt-2 text-[13px] text-cocoa">Authors appear here as books are added to the shop.</p>
         </div>
       ) : (
-        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <ul data-reveal-stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {authors.map((a, i) => (
             <AuthorCard key={a.id} author={a} index={i} />
           ))}
@@ -147,50 +147,112 @@ function AuthorsBackdrop() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* The translucent glow is listed first so it paints on top of the opaque wash. */}
-      <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_100%_0%,rgba(255,255,255,0.7),transparent_70%),radial-gradient(120%_100%_at_0%_100%,#fde3da_0%,#fcf1ed_55%,#fbf6f2_100%)]" />
-      <DottedPaper dot="rgba(199,58,42,0.16)" />
+      <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_100%_0%,rgba(255,255,255,0.7),transparent_70%),radial-gradient(120%_100%_at_0%_100%,#dbe6f3_0%,#eaf0f7_55%,#f6f8fb_100%)]" />
+      <DottedPaper dot="rgba(4,43,82,0.12)" />
       <span className="blob-drift absolute -left-20 -top-24 h-64 w-64 rounded-full bg-rose-300/30 blur-3xl" />
-      <span className="blob-drift absolute -bottom-24 right-[30%] h-56 w-56 rounded-full bg-[#ffd44d]/20 blur-3xl [animation-delay:-6s]" />
+      <span className="blob-drift absolute -bottom-24 right-[30%] h-56 w-56 rounded-full bg-[#e8b04b]/20 blur-3xl [animation-delay:-6s]" />
       <Doodle className="left-[46%] top-[8%] w-20 max-md:hidden lg:w-24" delay="-1.5s" viewBox="0 0 160 100">
-        <OpenBook stroke="#2f7f7a" opacity={0.3} />
+        <OpenBook stroke="#2b5d92" opacity={0.3} />
       </Doodle>
       <Doodle className="bottom-[10%] left-[38%] w-10 max-lg:hidden" delay="-4s" viewBox="0 0 80 100">
         <g className="origin-center rotate-12">
-          <FoldedPage stroke="#c73a2a" opacity={0.28} />
+          <FoldedPage stroke="#0d4377" opacity={0.28} />
         </g>
       </Doodle>
-      <Ring className="-bottom-20 -right-16 h-56 w-56" stroke="#f65d4e" opacity={0.2} />
-      <Sparkle className="right-[8%] top-[10%] w-4" delay="-2.5s" fill="#f65d4e" opacity={0.5} />
+      <Ring className="-bottom-20 -right-16 h-56 w-56" stroke="#042b52" opacity={0.2} />
+      <Sparkle className="right-[8%] top-[10%] w-4" delay="-2.5s" fill="#042b52" opacity={0.5} />
       <Sparkle className="left-[2%] bottom-[12%] w-3" delay="-5s" fill="#e8b04b" opacity={0.65} />
-      <Sparkle className="right-[36%] bottom-[8%] w-3 max-md:hidden" delay="-3.5s" fill="#2f7f7a" opacity={0.45} />
+      <Sparkle className="right-[36%] bottom-[8%] w-3 max-md:hidden" delay="-3.5s" fill="#2b5d92" opacity={0.45} />
     </div>
   );
 }
 
 /** Portrait (or a tinted monogram, as the home page draws it), name and a line of bio. */
+/** The little shelf in each card's cover band: heights and colours of its spines. */
+const COVER_SPINES = [
+  { h: "h-5", tone: "bg-mustard" },
+  { h: "h-7", tone: "bg-rose-300" },
+  { h: "h-4", tone: "bg-white/80" },
+  { h: "h-6", tone: "bg-mustard/70" },
+];
+
+/**
+ * A profile card: a cover band with the portrait set half over it, the
+ * author's name, a line of bio, how many books the shop has by them, and a
+ * button to see them.
+ *
+ * On hover (or keyboard focus) the card lifts, the band turns the logo's navy,
+ * a gold-and-blue ring turns around the portrait, a few book spines rise on the
+ * band and the button fills in. Transitions only, so it costs nothing to load,
+ * and the ring stands still for anyone who has asked for less motion. On touch
+ * screens the resting card is complete on its own.
+ */
 function AuthorCard({ author: a, index }: { author: Author; index: number }) {
   const [from, to] = GENRE_TINTS[index % GENRE_TINTS.length];
+  const books = a.products_count;
+  const lit = "group-hover:opacity-100 group-focus-visible:opacity-100";
+
   return (
     <li>
       <Link
         href={`/collection?author=${a.slug}`}
-        className="card group flex h-full flex-col items-center px-6 py-8 text-center transition-[translate,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-lift"
+        className="group relative flex h-full flex-col items-center overflow-hidden rounded-[var(--radius-card)] border border-blush-200 bg-white px-6 pb-6 text-center transition-[translate,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1.5 hover:border-rose-200 hover:shadow-lift focus-visible:-translate-y-1.5 focus-visible:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/60"
       >
-        <span
-          className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full text-[1.5rem] font-semibold text-white ring-4 ring-blush-100"
-          style={a.photo ? undefined : { background: `linear-gradient(135deg, ${from}, ${to})` }}
-        >
-          {a.photo ? (
-            <Image src={a.photo} alt="" fill sizes="96px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
-          ) : (
-            initialsOf(a.name)
+        {/* Cover band: pale blue at rest, navy when the card is picked out. */}
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[4.75rem] overflow-hidden">
+          <span className="absolute inset-0 bg-[linear-gradient(135deg,#eaf0f7_0%,#d9e4f2_100%)]" />
+          <span className={`absolute inset-0 bg-[linear-gradient(135deg,#0d4377_0%,#042b52_100%)] opacity-0 transition-opacity duration-500 ${lit}`} />
+          <span className="absolute inset-0 bg-[radial-gradient(rgba(4,43,82,0.14)_1px,transparent_1.3px)] [background-size:11px_11px]" />
+          <span className="absolute bottom-0 right-4 flex items-end gap-[3px]">
+            {COVER_SPINES.map((s, i) => (
+              <span
+                key={i}
+                className={`w-[7px] rounded-t-[2px] ${s.h} ${s.tone} translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0 group-focus-visible:translate-y-0`}
+                style={{ transitionDelay: `${i * 60}ms` }}
+              />
+            ))}
+          </span>
+        </span>
+
+        {/* Portrait in a white frame, with the turning ring behind it. */}
+        <span className="relative mt-5 grid h-28 w-28 shrink-0 place-items-center rounded-full bg-white">
+          <span
+            aria-hidden
+            className={`absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,#042b52,#8db1dc,#e8b04b,#042b52)] opacity-0 transition-opacity duration-500 group-hover:animate-[spin_6s_linear_infinite] motion-reduce:group-hover:animate-none ${lit}`}
+          />
+          <span
+            className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-[1.5rem] font-semibold text-white ring-4 ring-white"
+            style={a.photo ? undefined : { background: `linear-gradient(135deg, ${from}, ${to})` }}
+          >
+            {a.photo ? (
+              <Image
+                src={a.photo}
+                alt=""
+                fill
+                sizes="96px"
+                className="object-cover transition-transform duration-500 ease-out group-hover:scale-110 group-focus-visible:scale-110"
+              />
+            ) : (
+              initialsOf(a.name)
+            )}
+          </span>
+          {books > 0 && (
+            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-mustard px-2.5 py-[3px] text-[10.5px] font-bold uppercase tracking-[0.06em] text-rose-800 shadow-soft ring-2 ring-white">
+              {books} {books === 1 ? "book" : "books"}
+            </span>
           )}
         </span>
-        <span className="mt-4 text-[16px] font-semibold leading-snug text-ink transition-colors group-hover:text-rose-600">{a.name}</span>
-        {a.bio && <span className="mt-3 line-clamp-3 text-[13px] leading-relaxed text-cocoa">{a.bio}</span>}
-        <span className="mt-auto inline-flex items-center gap-1 pt-5 text-[12.5px] font-semibold text-rose-600">
-          View books
-          <ChevronIcon className="h-3 w-3 -rotate-90 transition-transform group-hover:translate-x-0.5" strokeWidth={2.4} />
+
+        <span className="mt-5 text-[16px] font-semibold leading-snug text-ink transition-colors group-hover:text-rose-600 group-focus-visible:text-rose-600">
+          {a.name}
+        </span>
+        {a.bio && <span className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-cocoa">{a.bio}</span>}
+
+        <span className="mt-auto pt-5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 px-4 py-2 text-[12.5px] font-semibold text-rose-600 transition-colors duration-300 group-hover:border-rose-600 group-hover:bg-rose-600 group-hover:text-white group-focus-visible:border-rose-600 group-focus-visible:bg-rose-600 group-focus-visible:text-white">
+            View books
+            <ChevronIcon className="h-3 w-3 -rotate-90 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={2.4} />
+          </span>
         </span>
       </Link>
     </li>

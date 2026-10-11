@@ -14,6 +14,8 @@ interface PopupConfig {
   discount: string;
   button: string;
   disclaimer: string;
+  /** Optional picture from admin → Popup Banner; '' for none. */
+  image: string;
 }
 
 const SEEN_KEY = "lalwani_popup_seen";
@@ -24,6 +26,7 @@ export function PopupBanner({ config }: { config: PopupConfig }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [error, setError] = useState("");
+  const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
     if (!config.enabled) return;
@@ -68,19 +71,47 @@ export function PopupBanner({ config }: { config: PopupConfig }) {
 
   if (!open) return null;
 
+  // A picture that fails to load (say, replaced in admin a moment ago while
+  // this page was cached) drops out, leaving the plain card, never a broken box.
+  const image = imageFailed ? "" : config.image;
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-black/45" onClick={dismiss} />
-      <div className="card relative z-10 w-full max-w-md overflow-hidden p-0">
+      {/*
+        With a picture the card widens on computers into picture | text, and
+        on phones stacks the picture above the text. The picture is always
+        shown whole (contained, never cropped, so words on a poster survive),
+        and the card scrolls inside itself if a short screen cannot hold it.
+      */}
+      <div
+        className={`card relative z-10 max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain p-0 ${
+          image ? "max-w-md md:grid md:max-w-3xl md:grid-cols-2" : "max-w-md overflow-hidden"
+        }`}
+      >
         <button
           onClick={dismiss}
           aria-label="Close popup"
-          className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/85 text-cocoa hover:bg-white"
+          className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/85 text-cocoa shadow-soft hover:bg-white"
         >
           <CloseIcon className="h-3.5 w-3.5" />
         </button>
 
-        <div className="bg-[linear-gradient(120deg,#f9e4de_0%,#f4d3cd_100%)] px-8 py-7 text-center">
+        {image && (
+          <div className="flex items-center justify-center bg-[linear-gradient(120deg,#e8eff8_0%,#d5e2f1_100%)]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- any shape of admin upload, shown at its own ratio */}
+            <img
+              src={image}
+              alt={config.title}
+              decoding="async"
+              onError={() => setImageFailed(true)}
+              className="block h-auto max-h-[38vh] w-full object-contain md:max-h-[80vh]"
+            />
+          </div>
+        )}
+
+        <div className={image ? "md:flex md:flex-col md:justify-center" : ""}>
+        <div className={`${image ? "bg-white" : "bg-[linear-gradient(120deg,#e8eff8_0%,#d5e2f1_100%)]"} px-8 py-7 text-center`}>
           {config.discount && (
             <span className="inline-block rounded-full bg-maroon-800 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
               {config.discount}
@@ -115,6 +146,7 @@ export function PopupBanner({ config }: { config: PopupConfig }) {
               )}
             </form>
           )}
+        </div>
         </div>
       </div>
     </div>

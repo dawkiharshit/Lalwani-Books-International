@@ -21,7 +21,7 @@ export function SectionHead({ title, href, label = "View All" }: { title: string
       {href && (
         <Link
           href={href}
-          className="group/va ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-600 px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:bg-rose-700 hover:shadow-[0_10px_24px_-10px_rgba(246,93,78,0.8)] sm:ml-0"
+          className="group/va ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-600 px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:bg-rose-700 hover:shadow-[0_10px_24px_-10px_rgba(4,43,82,0.45)] sm:ml-0"
         >
           {label}
           <ChevronIcon className="h-3 w-3 -rotate-90 transition-transform group-hover/va:translate-x-0.5" strokeWidth={2.4} />
@@ -209,7 +209,7 @@ export function DealsOfTheWeek({ deals, offers, title }: { deals: ProductCardTyp
   );
 }
 
-const TREND_TINTS = ["bg-[#fdf1ec]", "bg-[#eef8ef]", "bg-[#eef1fb]", "bg-[#fdf6e7]"];
+const TREND_TINTS = ["bg-[#eaf0f7]", "bg-[#f8f2e3]", "bg-[#e6eef9]", "bg-[#eef2f6]"];
 
 /** Tinted cards, one book each — Bookory's "What's In Trend". One per view on phones, two on tablets, three on desktop; the rest scroll. */
 export function TrendSection({ products, title = "What's In Trend" }: { products: ProductCardType[]; title?: string }) {
@@ -267,10 +267,10 @@ export function TestimonialBand({
   if (items.length === 0) return null;
   return (
     <div className={className}>
-      <section className="relative overflow-hidden rounded-[var(--radius-hero)] bg-[#f6cbb4] px-6 py-10 sm:px-10 lg:px-14 lg:py-12">
+      <section className="relative overflow-hidden rounded-[var(--radius-hero)] bg-[#cfdeef] px-6 py-10 sm:px-10 lg:px-14 lg:py-12">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(45%_70%_at_85%_10%,rgba(255,255,255,0.5),transparent_70%),radial-gradient(90%_120%_at_0%_0%,#fbdccb_0%,#f6cbb4_55%,#f1bda2_100%)]" />
-          <DottedPaper dot="rgba(199,58,42,0.16)" />
+          <div className="absolute inset-0 bg-[radial-gradient(45%_70%_at_85%_10%,rgba(255,255,255,0.5),transparent_70%),radial-gradient(90%_120%_at_0%_0%,#dde8f5_0%,#cfdeef_55%,#c0d3ea_100%)]" />
+          <DottedPaper dot="rgba(4,43,82,0.12)" />
           <span className="blob-drift absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/50 blur-3xl" />
           <span className="blob-drift absolute -bottom-28 left-[18%] h-64 w-64 rounded-full bg-rose-300/40 blur-3xl [animation-delay:-6s]" />
           <QuoteIcon className="absolute left-[1%] top-[3%] h-16 w-16 text-white/70 md:h-24 md:w-24" />
@@ -321,15 +321,19 @@ export function GridSection({ title, href, products: all }: { title: string; hre
   );
 }
 
+/**
+ * Navy, blues and a deep gold — the logo's colours — for tiles and monograms.
+ * They carry white text, so every pair reads at 4.5:1 or better.
+ */
 export const GENRE_TINTS = [
-  ["#2f6fdf", "#1d4fb0"],
-  ["#ffb43d", "#f08c1a"],
-  ["#ff6ea8", "#e0407f"],
-  ["#22b8a0", "#128a76"],
-  ["#8f6ff0", "#6b49d6"],
-  ["#f65d4e", "#d93d2e"],
-  ["#4bb7f2", "#1e8fd0"],
-  ["#5fbf62", "#3c9a40"],
+  ["#2b5d92", "#1b4675"],
+  ["#8f6a1f", "#6e5218"],
+  ["#5c7896", "#46607c"],
+  ["#0d4377", "#042b52"],
+  ["#3f6fa8", "#2c5a91"],
+  ["#1b4675", "#0a2d52"],
+  ["#4b6a88", "#3a5671"],
+  ["#33507a", "#243d60"],
 ];
 
 /**
@@ -532,16 +536,16 @@ export function StatsCards({
   return (
     <section className={className}>
       <div data-reveal className="relative overflow-hidden rounded-[var(--radius-hero)] bg-pine-900 px-6 py-9 sm:px-10 lg:px-14 lg:py-12">
-        {/* A mustard glow top right, a rose one bottom left, parchment dots and a drawn book. */}
+        {/* A gold glow top right, a light-blue one bottom left, pale dots and a drawn book. */}
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(70%_90%_at_100%_0%,rgba(232,176,75,0.18),transparent_65%),radial-gradient(60%_80%_at_0%_100%,rgba(246,93,78,0.14),transparent_65%)]" />
-          <DottedPaper dot="rgba(239,230,214,0.14)" />
+          <div className="absolute inset-0 bg-[radial-gradient(70%_90%_at_100%_0%,rgba(232,176,75,0.18),transparent_65%),radial-gradient(60%_80%_at_0%_100%,rgba(141,177,220,0.16),transparent_65%)]" />
+          <DottedPaper dot="rgba(232,238,246,0.14)" />
           <Doodle className="-bottom-6 right-[4%] w-36 max-md:hidden lg:w-44" delay="-2s" viewBox="0 0 160 100">
             <OpenBook stroke="#e8b04b" opacity={0.3} />
           </Doodle>
-          <Ring className="-left-20 -top-24 h-56 w-56" stroke="#efe6d6" opacity={0.18} />
+          <Ring className="-left-20 -top-24 h-56 w-56" stroke="#e8eef6" opacity={0.18} />
           <Sparkle className="left-[45%] top-[14%] w-3 max-md:hidden" delay="-4s" fill="#e8b04b" opacity={0.7} />
-          <Sparkle className="bottom-[16%] right-[30%] w-3 max-lg:hidden" delay="-1s" fill="#efe6d6" opacity={0.6} />
+          <Sparkle className="bottom-[16%] right-[30%] w-3 max-lg:hidden" delay="-1s" fill="#e8eef6" opacity={0.6} />
         </div>
         <ul className="relative grid grid-cols-2 gap-x-6 gap-y-9 lg:grid-cols-4 lg:gap-x-0 lg:divide-x lg:divide-parchment/15">
           {stats.map(({ value, label, Icon }) => (

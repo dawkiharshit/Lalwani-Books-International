@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { api } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
 import type { Author, Category, Deal, Paginated, ProductCard } from "@/lib/types";
@@ -25,6 +26,8 @@ import {
   PromoBand,
 } from "@/components/home/connected";
 import { getSettings } from "@/lib/settings";
+import { SITE_URL, absoluteUrl } from "@/lib/seo";
+import { JsonLd } from "@/components/JsonLd";
 
 export const revalidate = 120;
 
@@ -46,6 +49,51 @@ function orFallback(picked: ProductCard[], fallback: ProductCard[]) {
  * deals, trending, testimonials, popular books, genres, authors and stats.
  * Every section is fed from the API and hides itself when it has nothing.
  */
+/** The home page's canonical address: admin → SEO's "canonical URL", else the site root. */
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  const canonical = String(settings.seo_canonical ?? "").trim();
+  return { alternates: { canonical: canonical || "/" } };
+}
+
+/**
+ * Who the shop is (name, logo, contact, social profiles) and how to search it,
+ * so a search engine can show the store's details and a search box for it.
+ */
+function storeJsonLd(name: string, settings: Awaited<ReturnType<typeof getSettings>>) {
+  const value = (key: string) => String(settings[key] ?? "").trim();
+  const sameAs = ["social_facebook", "social_instagram", "social_youtube", "social_x", "social_telegram"]
+    .map(value)
+    .filter((u) => /^https?:\/\//i.test(u));
+
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "BookStore",
+      name,
+      url: SITE_URL,
+      logo: absoluteUrl("/images/brand/logo.png"),
+      image: absoluteUrl("/images/brand/logo.png"),
+      ...(value("site_tagline") ? { description: value("site_tagline") } : {}),
+      ...(value("support_phone") ? { telephone: value("support_phone") } : {}),
+      ...(value("support_email") ? { email: value("support_email") } : {}),
+      ...(value("contact_address") ? { address: value("contact_address") } : {}),
+      ...(sameAs.length ? { sameAs } : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name,
+      url: SITE_URL,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/collection?search={search_term_string}` },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ];
+}
+
 export default async function HomePage() {
   const [all, bestsellers, newest, featured, banners, categories, testimonials, posts, settings, authorList, dealOffers] = await Promise.all([
     list("/products?per_page=48"),
@@ -102,13 +150,19 @@ export default async function HomePage() {
     return v || fallback;
   };
 
+  const storeName = settings.site_name || "Lalwani Books International";
+
   return (
     <div className="flex min-h-screen w-full flex-col overflow-x-clip">
+      <JsonLd data={storeJsonLd(storeName, settings)} />
       <AnnouncementBar />
       <PopupGate />
       <SiteHeader />
 
       <main className="flex-1 pb-20">
+        {/* The page's one main heading, for search engines and screen readers:
+            the banners carry the visible headings, one per slide. */}
+        <h1 className="sr-only">{text("seo_home_title", `${storeName} — Online Book Store`)}</h1>
         <HeroCarousel banners={banners} books={heroBooks} />
         {/* Every author with books (switch in Home Page) — their photo, or
             their initials until one is added. */}

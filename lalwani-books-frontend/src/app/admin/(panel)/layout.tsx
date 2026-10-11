@@ -13,7 +13,6 @@ import {
   AtIcon,
   BoxIcon,
   CardIcon,
-  CartIcon,
   ChartIcon,
   ChevronIcon,
   DashboardIcon,
@@ -78,7 +77,6 @@ const GROUPS: {
   {
     title: "Shop",
     links: [
-      { href: "/admin/abandoned", label: "Abandoned Carts", icon: CartIcon, tint: TINT.coral },
       { href: "/admin/categories", label: "Categories & Authors", icon: GridIcon, tint: TINT.lilac },
       { href: "/admin/coupons", label: "Coupons", icon: TagIcon, tint: TINT.honey },
       { href: "/admin/orders", label: "Orders", icon: ReceiptIcon, tint: TINT.mint },
@@ -484,7 +482,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         */}
         <div className="flex items-center justify-between gap-3 border-b border-blush-100 bg-white py-2 pl-5 pr-3 sm:pl-6 sm:pr-4 lg:hidden">
           <Link href="/admin" aria-label={`${brand.name} dashboard`} className="flex items-center">
-            <Brand logo={brand.logo} name={brand.name} height={40} />
+            <Brand logo={brand.logo} name={brand.name} height={48} />
           </Link>
 
           <div className="flex items-center gap-1">

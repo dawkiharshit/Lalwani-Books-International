@@ -160,7 +160,7 @@ export function IntegrationPanel({
             setError("");
             load();
           }}
-          className="rounded-full bg-ink px-5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-rose-600"
+          className="rounded-full bg-ink px-5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-rose-700"
         >
           Retry
         </button>

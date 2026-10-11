@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     // Auth
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1,register');
+    // Sign-up step two (the emailed code) and a fresh code for it.
+    Route::post('/auth/register/verify', [AuthController::class, 'verifyRegistration'])->middleware('throttle:12,10,register-verify');
+    Route::post('/auth/register/resend', [AuthController::class, 'resendRegistration'])->middleware('throttle:6,10,register-resend');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1,login');
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1,forgot');
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1,reset');
@@ -245,6 +248,12 @@ Route::prefix('v1')->group(function () {
             $out[$key] = \App\Models\Setting::get($key, $default);
         }
 
+        // The About story is HTML from admin; the shop shows it as HTML, so it
+        // leaves here cleaned (no scripts, event handlers or javascript: links).
+        if (isset($out['about_founder_story'])) {
+            $out['about_founder_story'] = \App\Support\HtmlSanitizer::clean((string) $out['about_founder_story']);
+        }
+
         return response()->json(['data' => $out]);
     });
 
@@ -376,6 +385,10 @@ Route::prefix('v1')->group(function () {
         $blog = \App\Models\Blog::published()->where('slug', $slug)->firstOrFail();
         $blog->increment('views');
 
-        return response()->json(['data' => $blog->toDetail()]);
+        // Shown as HTML on the shop, so cleaned of anything that could run.
+        $detail = $blog->toDetail();
+        $detail['content'] = \App\Support\HtmlSanitizer::clean((string) ($detail['content'] ?? ''));
+
+        return response()->json(['data' => $detail]);
     });
 });

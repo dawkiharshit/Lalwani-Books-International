@@ -2,55 +2,61 @@
 
 /*
  * Lalwani Books International — storefront theme, after the Bookory book-store
- * layout: Sora throughout, one coral accent (it is also the logo's coral),
- * near-black headings, grey body copy, hairline borders instead of shadows.
+ * layout: Sora throughout, the logo's navy as the one accent, a gold second
+ * accent, navy-black headings, slate body copy, hairline borders instead of
+ * shadows.
  *
  * The token names are inherited from the template this storefront grew from
- * (rose, maroon, blush...). They are kept so every page picks up the new look
- * at once; read them as roles, not colours:
- *   rose-*   the coral accent        maroon-*  the dark #282828 surfaces
+ * (rose, maroon, blush...). They are kept so every page picks up the look at
+ * once; read them as roles, not colours:
+ *   rose-*   the navy accent         maroon-*  the dark navy surfaces
  *   blush-*  light tints + borders   ink/cocoa/fog  heading/body/muted text
  */
 @theme {
-  /* Tints and hairlines. 100 is the peach of the hero and page bands. */
-  --color-blush-50: #fff8f5;
-  --color-blush-100: #fcf1ed;
-  --color-blush-150: #f2f2f2;
-  --color-blush-200: #e6e6e6;
-  --color-blush-300: #d4d4d4;
+  /* Tints and hairlines, cool to sit with the navy. 100 is the pale blue of
+     the hero and page bands. */
+  --color-blush-50: #f5f8fc;
+  --color-blush-100: #eaf0f7;
+  --color-blush-150: #f0f3f7;
+  --color-blush-200: #e0e6ee;
+  --color-blush-300: #cbd4df;
 
-  /* Coral. 600 is the brand coral (#F65D4E), 700 its hover. Coral on white
-     is 3.2:1 — fine for buttons with white bold text and large prices, never
-     for small body copy. */
-  --color-rose-100: #feebe8;
-  --color-rose-300: #fbb3ab;
-  --color-rose-400: #f8877b;
-  --color-rose-500: #f7705f;
-  --color-rose-600: #f65d4e;
-  --color-rose-700: #e5402f;
-  /* Deep coral for small coral text on peach (4.6:1 on blush-100). */
-  --color-rose-800: #c73a2a;
+  /* Navy, from the logo. 600 is the logo's own navy (#042B52): 14:1 on white,
+     so it carries buttons, links, prices and small text alike. 700 is its
+     hover, a step lighter so the change shows on a dark button. 400 is the
+     light blue that reads on the dark footer and sidebar (7.3:1). */
+  --color-rose-100: #e4ecf6;
+  --color-rose-200: #c9d6e6;
+  --color-rose-300: #a9bfd9;
+  --color-rose-400: #8db1dc;
+  --color-rose-500: #2b5d92;
+  --color-rose-600: #042b52;
+  --color-rose-700: #0d4377;
+  /* Deepest navy, for small text on the pale tints. */
+  --color-rose-800: #031f3d;
 
-  /* Footer: library green, parchment type and a mustard accent. On pine-900,
-     parchment/70 reads at 6.4:1, mustard 7.2:1 and rose-400 5.9:1. */
-  --color-pine-950: #0b1f1a;
-  --color-pine-900: #12302a;
-  --color-pine-800: #1a4038;
-  --color-pine-700: #24574b;
-  --color-parchment: #efe6d6;
+  /* Footer: deep navy like the logo, light type and a gold accent. On
+     pine-900, parchment/70 reads at 7.4:1, mustard 8.3:1 and rose-400 7.3:1.
+     (The pine-* names are left over from the green it used to be.) */
+  --color-pine-950: #021427;
+  --color-pine-900: #04213f;
+  --color-pine-800: #0a2d52;
+  --color-pine-700: #1b4675;
+  --color-parchment: #e8eef6;
   --color-mustard: #e8b04b;
-  --color-accent: #f65d4e;
+  --color-accent: #042b52;
 
-  /* Dark surfaces: the top bar, footer and dark cards. */
-  --color-maroon-600: #3d3d3d;
-  --color-maroon-700: #333333;
-  --color-maroon-800: #282828;
-  --color-maroon-900: #1d1d1d;
+  /* Dark surfaces: the admin sidebar, dark cards and dark buttons. */
+  --color-maroon-600: #1e3d61;
+  --color-maroon-700: #15335a;
+  --color-maroon-800: #0c2745;
+  --color-maroon-900: #061b33;
 
-  --color-ink: #111111;
-  --color-cocoa: #444444;
-  /* #6b6b6b, not lighter: 5.3:1 on white, the floor for 12px meta text. */
-  --color-fog: #6b6b6b;
+  --color-ink: #0f1d2e;
+  --color-cocoa: #3a4757;
+  /* #5e6a7a, not lighter: 5.5:1 on white, above the 5.3:1 floor for 12px
+     meta text. */
+  --color-fog: #5e6a7a;
   /* Rating stars. */
   --color-gold: #f5a623;
   --color-cream: #ffffff;
@@ -145,7 +151,7 @@ body {
 
 .input-base:focus {
   border-color: var(--color-rose-600);
-  box-shadow: 0 0 0 3px rgba(246, 93, 78, 0.18);
+  box-shadow: 0 0 0 3px rgba(4, 43, 82, 0.16);
 }
 
 /* Headings: Sora semibold, slightly tight, near-black — the Bookory voice.
@@ -392,7 +398,7 @@ html {
   border-radius: 9999px;
   border: 2px solid var(--color-rose-600);
   background: #fff;
-  box-shadow: 0 2px 6px rgba(246, 93, 78, 0.35);
+  box-shadow: 0 2px 6px rgba(4, 43, 82, 0.3);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -402,7 +408,7 @@ html {
   border-radius: 9999px;
   border: 2px solid var(--color-rose-600);
   background: #fff;
-  box-shadow: 0 2px 6px rgba(246, 93, 78, 0.35);
+  box-shadow: 0 2px 6px rgba(4, 43, 82, 0.3);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -608,7 +614,7 @@ html::-webkit-scrollbar-track:vertical {
   height: 4px;
   width: 100%;
   border-radius: 999px;
-  background: #ead8ce;
+  background: #d3dce8;
 }
 
 /* The veil fades in only once the wait is long enough to notice. */
@@ -625,7 +631,7 @@ html::-webkit-scrollbar-track:vertical {
   .skeleton {
     position: relative;
     overflow: hidden;
-    background: #fcf1ed;
+    background: var(--color-blush-100);
   }
   .skeleton::after {
     content: "";
@@ -656,7 +662,7 @@ html::-webkit-scrollbar-track:vertical {
   gap: 18px;
   background:
     radial-gradient(60% 50% at 50% 38%, rgba(255, 255, 255, 0.9), transparent 70%),
-    linear-gradient(160deg, #fde3da 0%, #fcf1ed 55%, #fbf6f2 100%);
+    linear-gradient(160deg, #dbe6f3 0%, #eaf0f7 55%, #f6f8fb 100%);
 }
 .splash-done .boot-splash {
   opacity: 0;
@@ -665,7 +671,7 @@ html::-webkit-scrollbar-track:vertical {
   pointer-events: none;
   transition: opacity 0.4s ease, visibility 0s linear 0.4s;
 }
-.boot-splash__logo { height: 56px; width: auto; animation: fadeUp 0.5s ease-out both; }
+.boot-splash__logo { height: 88px; width: auto; animation: fadeUp 0.5s ease-out both; }
 
 /* ── Motion ─────────────────────────────────────────────────────────────
    Scroll reveal: `data-reveal` fades an element up when it scrolls into

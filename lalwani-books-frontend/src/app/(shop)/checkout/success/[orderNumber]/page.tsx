@@ -59,7 +59,7 @@ export default function SuccessPage({
   return (
     <div className="mx-auto w-full max-w-2xl">
       <div className="card overflow-hidden">
-        <div className="bg-[linear-gradient(120deg,#f9e4de_0%,#f4d3cd_100%)] px-8 py-10 text-center">
+        <div className="bg-[linear-gradient(120deg,#e8eff8_0%,#d5e2f1_100%)] px-8 py-10 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-emerald-600 shadow-soft">
             <CheckIcon className="h-6 w-6" strokeWidth={2.4} />
           </span>

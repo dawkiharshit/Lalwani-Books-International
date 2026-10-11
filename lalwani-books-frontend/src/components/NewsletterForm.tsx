@@ -51,7 +51,7 @@ export function NewsletterForm() {
         <button
           type="submit"
           disabled={state === "busy"}
-          className="flex shrink-0 items-center gap-2 rounded-full bg-rose-600 px-4 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-70 sm:px-5"
+          className="flex shrink-0 items-center gap-2 rounded-full bg-mustard px-4 py-2.5 text-[13px] font-semibold text-rose-800 transition-colors hover:bg-[#f0c36b] disabled:opacity-70 sm:px-5"
         >
           {state === "busy" && <Spinner className="h-4 w-4" />}
           Subscribe

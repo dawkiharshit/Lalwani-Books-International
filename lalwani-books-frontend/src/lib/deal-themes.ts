@@ -5,47 +5,49 @@
  * out in full because Tailwind only generates what it finds in the source.
  */
 export const DEAL_THEMES = {
+  // The keys are stored with each deal, so they stay as they were; the
+  // colourways follow the navy logo (they used to be coral, pine, plum, ocean).
   coral: {
-    label: "Coral",
-    panel: "bg-[linear-gradient(120deg,#f5a48a_0%,#ef8f72_55%,#e9775c_100%)]",
-    blobA: "bg-[#9fd8c4]/70",
-    blobB: "bg-[#c4552f]/45",
-    underline: "text-[#c4382a]",
-    timer: "bg-[#ffd44d] text-ink",
+    label: "Sky blue",
+    panel: "bg-[linear-gradient(120deg,#5b8fcf_0%,#4677b8_55%,#33609c_100%)]",
+    blobA: "bg-[#c9d6e6]/50",
+    blobB: "bg-[#042b52]/35",
+    underline: "text-[#e8b04b]",
+    timer: "bg-[#e8b04b] text-[#042b52]",
     button: "bg-white text-ink hover:bg-ink hover:text-white",
   },
   pine: {
-    label: "Pine green",
-    panel: "bg-[linear-gradient(120deg,#2b6355_0%,#1d4a40_55%,#12302a_100%)]",
+    label: "Navy",
+    panel: "bg-[linear-gradient(120deg,#0d4377_0%,#08365f_55%,#042b52_100%)]",
     blobA: "bg-[#e8b04b]/35",
-    blobB: "bg-[#f65d4e]/25",
+    blobB: "bg-[#8db1dc]/25",
     underline: "text-[#e8b04b]",
-    timer: "bg-[#e8b04b] text-[#12302a]",
-    button: "bg-[#efe6d6] text-[#12302a] hover:bg-white",
+    timer: "bg-[#e8b04b] text-[#042b52]",
+    button: "bg-[#e8eef6] text-[#042b52] hover:bg-white",
   },
   plum: {
-    label: "Plum",
-    panel: "bg-[linear-gradient(120deg,#8a6ddb_0%,#6c4fc6_55%,#5136a6_100%)]",
-    blobA: "bg-[#ff9ec4]/45",
-    blobB: "bg-[#3a2580]/45",
-    underline: "text-[#ffd44d]",
-    timer: "bg-[#ffd44d] text-ink",
+    label: "Steel blue",
+    panel: "bg-[linear-gradient(120deg,#6a87a6_0%,#557290_55%,#425d78_100%)]",
+    blobA: "bg-[#c9d6e6]/45",
+    blobB: "bg-[#042b52]/40",
+    underline: "text-[#e8b04b]",
+    timer: "bg-[#e8b04b] text-[#042b52]",
     button: "bg-white text-ink hover:bg-ink hover:text-white",
   },
   ocean: {
     label: "Ocean blue",
     panel: "bg-[linear-gradient(120deg,#3797dc_0%,#2175c0_55%,#165a9c_100%)]",
-    blobA: "bg-[#ffd44d]/40",
+    blobA: "bg-[#e8b04b]/40",
     blobB: "bg-[#0d3d70]/45",
-    underline: "text-[#ffd44d]",
-    timer: "bg-[#ffd44d] text-ink",
+    underline: "text-[#e8b04b]",
+    timer: "bg-[#e8b04b] text-[#042b52]",
     button: "bg-white text-ink hover:bg-ink hover:text-white",
   },
 } as const;
 
 export type DealTheme = keyof typeof DEAL_THEMES;
 
-/** A deal's colourway, coral for anything unknown. */
+/** A deal's colourway, the first (sky blue) for anything unknown. */
 export function dealTheme(name: string | null | undefined) {
   return DEAL_THEMES[(name ?? "coral") as DealTheme] ?? DEAL_THEMES.coral;
 }

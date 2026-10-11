@@ -112,7 +112,7 @@ export function AccountDetails({ user, className = "mt-8" }: { user: User; class
           autoComplete: "new-password",
         })}
         <div className="flex items-center gap-3">
-          <button disabled={pwBusy} className="flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-rose-600 disabled:opacity-60">
+          <button disabled={pwBusy} className="flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-60">
             {pwBusy && <Spinner className="h-4 w-4" />} Change password
           </button>
           {pwDone && <span role="status" className="text-[12.5px] text-emerald-700">{pwDone}</span>}

@@ -7,10 +7,10 @@
  */
 
 const SPINES = [
-  { color: "#f65d4e", height: 34, width: 12 },
+  { color: "#042b52", height: 34, width: 12 },
   { color: "#e8b04b", height: 44, width: 14 },
-  { color: "#2f7f7a", height: 38, width: 12 },
-  { color: "#8a5a78", height: 46, width: 13 },
+  { color: "#2b5d92", height: 38, width: 12 },
+  { color: "#8db1dc", height: 46, width: 13 },
   { color: "#4b6a88", height: 36, width: 12 },
 ];
 

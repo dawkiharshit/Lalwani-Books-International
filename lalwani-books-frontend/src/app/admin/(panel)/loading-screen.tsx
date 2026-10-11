@@ -66,7 +66,7 @@ export function AdminLoadingScreen({
         {/* The phone-width bar, box for box: the logo, then the account and
             menu buttons — dimmed, since they do nothing until it loads. */}
         <div className="flex items-center justify-between gap-3 border-b border-blush-100 bg-white py-2 pl-5 pr-3 sm:pl-6 sm:pr-4 lg:hidden">
-          <Brand logo={brand.logo} name={brand.name} height={40} />
+          <Brand logo={brand.logo} name={brand.name} height={48} />
           <span className="flex items-center gap-1 text-cocoa/40">
             <span className="flex h-10 w-10 items-center justify-center">
               <UserIcon className="h-[19px] w-[19px]" />

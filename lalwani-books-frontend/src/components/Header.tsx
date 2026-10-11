@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "@/components/Image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { clientApi } from "@/lib/api";
@@ -292,31 +292,6 @@ function CategoriesMenu({ categories }: { categories: Category[] }) {
   );
 }
 
-/**
- * True for staff: a customer session flagged is_admin, or an admin-panel
- * session in this browser (the panel keeps its own sign-in). Read after mount,
- * through useSyncExternalStore, so the server render (no admin) and the first
- * client render agree.
- */
-function readPanelAdmin() {
-  try {
-    const raw = localStorage.getItem("lalwani_admin_user");
-    return Boolean(raw && JSON.parse(raw)?.is_admin);
-  } catch {
-    return false;
-  }
-}
-
-function subscribeStorage(onChange: () => void) {
-  window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
-}
-
-function useIsAdmin(storeUserIsAdmin: boolean) {
-  const panel = useSyncExternalStore(subscribeStorage, readPanelAdmin, () => false);
-  return storeUserIsAdmin || panel;
-}
-
 export function Header({
   logo,
   siteName = "Lalwani Books International",
@@ -328,8 +303,15 @@ export function Header({
 }) {
   const { count, openCart } = useCart();
   const wishCount = useWishlistCount();
-  const { user, logout } = useAuth();
-  const isAdmin = useIsAdmin(Boolean(user?.is_admin));
+  const { user, ready, logout } = useAuth();
+  /*
+   * The "Admin" shortcut is only for an admin signed in on the shop right now:
+   * `ready` means the saved session has been checked with the server, so one
+   * that was signed out or has expired never shows it. It used to also trust
+   * the admin panel's sign-in saved in the browser, which outlived signing out
+   * and kept the button up for nobody.
+   */
+  const isAdmin = ready && Boolean(user?.is_admin);
   const pathname = usePathname();
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -601,7 +583,7 @@ export function Header({
     >
       <div className="container-shop relative flex h-16 items-center gap-6">
         <Link href="/" className="flex shrink-0 items-center" aria-label={siteName}>
-          <Brand logo={logo} name={siteName} height={38} heightClass="h-[34px] lg:h-[38px]" />
+          <Brand logo={logo} name={siteName} height={50} />
         </Link>
         <nav aria-label="Main (pinned)" className="hidden flex-1 lg:block">
           <ul className="flex items-center justify-center gap-9 text-[14px] font-semibold text-ink">{navLinks}</ul>
@@ -645,9 +627,9 @@ export function Header({
           live in the footer (and Track Order in the phone menu). */}
 
       {/* Logo · Categories · Search · Account icons */}
-      <div className={`container-shop flex items-center gap-2 transition-[padding] duration-300 lg:gap-6 lg:py-6 ${folded ? "py-3.5" : "py-5"}`}>
+      <div className={`container-shop flex items-center gap-2 transition-[padding] duration-300 lg:gap-6 lg:py-4 ${folded ? "py-2.5" : "py-4"}`}>
         <Link href="/" className="flex shrink-0 items-center" aria-label={siteName}>
-          <Brand logo={logo} name={siteName} height={52} heightClass="h-[clamp(38px,13.9vw,56px)] lg:h-[52px]" />
+          <Brand logo={logo} name={siteName} height={68} heightClass="h-[clamp(48px,16vw,64px)] lg:h-[68px]" />
         </Link>
 
         <div className="hidden flex-1 items-center gap-3 lg:flex xl:ml-8">
@@ -667,7 +649,7 @@ export function Header({
           {isAdmin && (
             <Link
               href="/admin"
-              className="mr-1 hidden items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-rose-600 sm:flex"
+              className="mr-1 hidden items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-rose-700 sm:flex"
             >
               <ShieldIcon className="h-4 w-4" />
               Admin
@@ -739,7 +721,7 @@ export function Header({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
-              <Brand logo={logo} name={siteName} height={38} />
+              <Brand logo={logo} name={siteName} height={52} />
               <button onClick={closeMenu} className="flex h-9 w-9 items-center justify-center rounded-full bg-blush-150 text-ink" aria-label="Close menu">
                 <CloseIcon className="h-4 w-4" />
               </button>

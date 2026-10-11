@@ -54,8 +54,11 @@ export async function generateMetadata(): Promise<Metadata> {
   // Falls back to the site description, not fixed copy: the old default was
   // left over from the zodiac template and showed on every shared link.
   const ogDescription = seo("seo_og_description") || description;
-  const ogImage = seo("seo_og_image");
-  const canonical = seo("seo_canonical");
+  // With no share image set in admin → SEO, links to the shop show the logo.
+  const ogImage = seo("seo_og_image") || "/images/brand/logo.png";
+  // The canonical address (admin → SEO) is the home page's alone — see
+  // app/page.tsx. Set here it was inherited by every page without its own,
+  // telling search engines each of them was a copy of the home page.
 
   return {
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
@@ -76,23 +79,20 @@ export async function generateMetadata(): Promise<Metadata> {
           ],
           apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
         },
-    ...(canonical ? { alternates: { canonical } } : {}),
     openGraph: {
       title: ogTitle,
       description: ogDescription,
       type: "website",
-      ...(ogImage ? { images: [ogImage] } : {}),
+      siteName: name,
+      locale: "en_IN",
+      images: [ogImage],
     },
-    ...(ogImage
-      ? {
-          twitter: {
-            card: "summary_large_image",
-            title: ogTitle,
-            description: ogDescription,
-            images: [ogImage],
-          },
-        }
-      : {}),
+    twitter: {
+      card: seo("seo_og_image") ? "summary_large_image" : "summary",
+      title: ogTitle,
+      description: ogDescription,
+      images: [ogImage],
+    },
   };
 }
 
@@ -125,7 +125,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {/* Shown only while <html> has `splash-on` (see SPLASH_BOOT); hidden otherwise. */}
         <div className="boot-splash" aria-hidden>
-          <Brand logo={settings.site_logo} name={settings.site_name} height={56} className="boot-splash__logo" />
+          <Brand logo={settings.site_logo} name={settings.site_name} height={88} className="boot-splash__logo" />
           <BookLoader size="lg" />
         </div>
         <Providers>{children}</Providers>

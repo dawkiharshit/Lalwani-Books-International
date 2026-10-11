@@ -32,6 +32,8 @@ export interface StoreSettings {
   popup_discount: string;
   popup_button: string;
   popup_disclaimer: string;
+  /** Picture shown in the popup, uploaded in admin → Popup Banner ('' for none). */
+  popup_image: string;
   about_hero_eyebrow: string;
   about_hero_title: string;
   about_hero_subtitle: string;
@@ -74,6 +76,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   popup_discount: "",
   popup_button: "Subscribe",
   popup_disclaimer: "",
+  popup_image: "",
   about_hero_eyebrow: "",
   about_hero_title: "",
   about_hero_subtitle: "",

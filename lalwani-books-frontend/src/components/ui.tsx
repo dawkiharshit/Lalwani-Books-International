@@ -167,11 +167,10 @@ export function SectionHeading({
  * The sale flash that sits over a hero photograph, and its twin in the admin
  * preview — one component so the two can never drift apart.
  *
- * Measured, not eyeballed: white on rose-600 (#9c5c6b) is 5.05:1, which the
- * 11px accent face at 0.16em tracking could not carry. maroon-700 (#74283c)
- * takes the same white to 9.95:1. The type is a step larger and a touch less
- * tracked, and the hairline ring keeps the pill's own edge from melting into a
- * dark photograph.
+ * Measured, not eyeballed: white on maroon-700 (#15335a, deep navy) is 12.7:1,
+ * plenty for the 11px accent face at 0.16em tracking. The type is a step
+ * larger and a touch less tracked, and the hairline ring keeps the pill's own
+ * edge from melting into a dark photograph.
  */
 export function OfferBadge({
   children,

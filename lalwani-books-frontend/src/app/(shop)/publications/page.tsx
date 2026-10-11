@@ -22,14 +22,14 @@ export const revalidate = 300;
  * `ink` the seal and label, `text` the name printed on a spine in the pile.
  */
 const IMPRINTS = [
-  { spine: "#f65d4e", deep: "#d9473a", soft: "#feebe8", ink: "#b8382a", text: "#ffffff" },
-  { spine: "#2f7f7a", deep: "#236460", soft: "#e2f1ef", ink: "#1f5a56", text: "#ffffff" },
+  { spine: "#042b52", deep: "#031f3d", soft: "#e4ecf6", ink: "#042b52", text: "#ffffff" },
+  { spine: "#2b5d92", deep: "#1f4a78", soft: "#e3ebf5", ink: "#1f4a78", text: "#ffffff" },
   { spine: "#e8b04b", deep: "#cf9532", soft: "#fbf1dc", ink: "#7f5510", text: "#3d2a05" },
-  { spine: "#8a5a78", deep: "#704660", soft: "#f2e8ef", ink: "#5f3a52", text: "#ffffff" },
+  { spine: "#5c7896", deep: "#4a6583", soft: "#e9eef4", ink: "#3a536e", text: "#ffffff" },
   { spine: "#4b6a88", deep: "#3a5671", soft: "#e6edf4", ink: "#2f4a63", text: "#ffffff" },
-  { spine: "#c4552f", deep: "#a64323", soft: "#f8e7e0", ink: "#8f3a1e", text: "#ffffff" },
-  { spine: "#5aae95", deep: "#43927a", soft: "#e2f3ed", ink: "#22705a", text: "#0f2e25" },
-  { spine: "#f08a6a", deep: "#d86f4f", soft: "#fdeee8", ink: "#a9482a", text: "#3f160a" },
+  { spine: "#b98a2e", deep: "#9a7224", soft: "#f6eedc", ink: "#6e5218", text: "#ffffff" },
+  { spine: "#8db1dc", deep: "#6f97c8", soft: "#e8f0f9", ink: "#1f4a78", text: "#0f1d2e" },
+  { spine: "#1b2f4a", deep: "#12233a", soft: "#e5e9ef", ink: "#1b2f4a", text: "#ffffff" },
 ];
 type Tone = (typeof IMPRINTS)[number];
 const toneOf = (index: number): Tone => IMPRINTS[index % IMPRINTS.length];
@@ -89,14 +89,14 @@ function PublicationsHero({ publishers, books }: { publishers: Publisher[]; book
     <section className="relative overflow-hidden rounded-[var(--radius-card)] bg-blush-100">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* The translucent glow is listed first so it paints on top of the opaque wash. */}
-        <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_100%_0%,rgba(255,255,255,0.7),transparent_70%),radial-gradient(120%_100%_at_0%_100%,#fde3da_0%,#fcf1ed_55%,#fbf6f2_100%)]" />
-        <DottedPaper dot="rgba(199,58,42,0.16)" />
-        <span className="blob-drift absolute -left-20 -top-24 h-64 w-64 rounded-full bg-[#9fd8c4]/30 blur-3xl" />
-        <span className="blob-drift absolute -bottom-24 right-[30%] h-56 w-56 rounded-full bg-[#ffd44d]/20 blur-3xl [animation-delay:-6s]" />
-        <Ring className="-bottom-20 -right-16 h-56 w-56" stroke="#2f7f7a" opacity={0.22} />
-        <Sparkle className="right-[8%] top-[10%] w-4" delay="-2.5s" fill="#f65d4e" opacity={0.5} />
+        <div className="absolute inset-0 bg-[radial-gradient(60%_80%_at_100%_0%,rgba(255,255,255,0.7),transparent_70%),radial-gradient(120%_100%_at_0%_100%,#dbe6f3_0%,#eaf0f7_55%,#f6f8fb_100%)]" />
+        <DottedPaper dot="rgba(4,43,82,0.12)" />
+        <span className="blob-drift absolute -left-20 -top-24 h-64 w-64 rounded-full bg-[#8db1dc]/30 blur-3xl" />
+        <span className="blob-drift absolute -bottom-24 right-[30%] h-56 w-56 rounded-full bg-[#e8b04b]/20 blur-3xl [animation-delay:-6s]" />
+        <Ring className="-bottom-20 -right-16 h-56 w-56" stroke="#2b5d92" opacity={0.22} />
+        <Sparkle className="right-[8%] top-[10%] w-4" delay="-2.5s" fill="#042b52" opacity={0.5} />
         <Sparkle className="left-[2%] bottom-[12%] w-3" delay="-5s" fill="#e8b04b" opacity={0.65} />
-        <Sparkle className="right-[44%] bottom-[10%] w-3 max-md:hidden" delay="-3.5s" fill="#2f7f7a" opacity={0.45} />
+        <Sparkle className="right-[44%] bottom-[10%] w-3 max-md:hidden" delay="-3.5s" fill="#2b5d92" opacity={0.45} />
       </div>
 
       <div className="relative grid items-center gap-8 px-6 py-9 sm:px-10 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:py-12">
@@ -122,7 +122,7 @@ function PublicationsHero({ publishers, books }: { publishers: Publisher[]; book
           <div className="relative hidden md:block">
             <span aria-hidden className="absolute left-1/2 top-1/2 h-60 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/60 blur-2xl" />
             <Doodle className="-top-12 right-[14%] w-24 lg:w-28" delay="-1.5s" viewBox="0 0 160 100">
-              <OpenBook stroke="#c73a2a" opacity={0.35} />
+              <OpenBook stroke="#0d4377" opacity={0.35} />
             </Doodle>
             <BookPile items={pile} className="float-y relative" />
           </div>

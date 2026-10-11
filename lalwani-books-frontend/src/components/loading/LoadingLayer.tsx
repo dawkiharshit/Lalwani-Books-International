@@ -177,7 +177,7 @@ function ProgressBar({ active, run }: { active: boolean; run: number }) {
     <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[120] h-[3px]">
       <div
         ref={bar}
-        className="h-full w-full origin-left bg-[linear-gradient(90deg,#f65d4e_0%,#f5a48a_55%,#e8b04b_100%)] opacity-0 shadow-[0_0_12px_rgba(246,93,78,0.55)]"
+        className="h-full w-full origin-left bg-[linear-gradient(90deg,#042b52_0%,#a9bfd9_55%,#e8b04b_100%)] opacity-0 shadow-[0_0_12px_rgba(4,43,82,0.4)]"
         style={{ transform: "scaleX(0)" }}
       />
     </div>
@@ -190,11 +190,11 @@ function Veil({ kind, siteName }: { kind: Exclude<LoadingKind, "idle">; siteName
   return (
     <div
       aria-hidden
-      className={`loading-veil fixed inset-0 z-[110] flex items-center justify-center bg-[#fcf1ed]/70 px-6 backdrop-blur-[3px] ${
+      className={`loading-veil fixed inset-0 z-[110] flex items-center justify-center bg-[#eaf0f7]/70 px-6 backdrop-blur-[3px] ${
         saving ? "" : "pointer-events-none"
       }`}
     >
-      <div className="flex flex-col items-center rounded-[1.25rem] bg-white px-9 py-7 text-center shadow-[0_24px_60px_-24px_rgba(199,58,42,0.45)] ring-1 ring-[#f5d9cf]">
+      <div className="flex flex-col items-center rounded-[1.25rem] bg-white px-9 py-7 text-center shadow-[0_24px_60px_-24px_rgba(4,43,82,0.35)] ring-1 ring-[#d3dce8]">
         <BookLoader size="md" />
         <p className="mt-4 text-[15px] font-semibold text-ink">{saving ? "Please wait…" : "Loading…"}</p>
         <p className="mt-0.5 text-[11.5px] font-medium uppercase tracking-[0.14em] text-rose-600">{siteName}</p>

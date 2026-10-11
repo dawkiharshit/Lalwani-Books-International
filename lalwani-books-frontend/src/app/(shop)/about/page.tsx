@@ -23,10 +23,10 @@ export const metadata: Metadata = {
  * in a white tile, so the four read as a set rather than four grey boxes.
  */
 const VALUE_STYLE = [
-  { Icon: ShieldIcon, bg: "bg-[#f3effd]", color: "text-[#6b49d6]" },
-  { Icon: BookOpenIcon, bg: "bg-[#e9f5fb]", color: "text-[#1e8fd0]" },
-  { Icon: TruckIcon, bg: "bg-[#eaf6ea]", color: "text-[#3c9a40]" },
-  { Icon: UsersIcon, bg: "bg-[#fdf1e6]", color: "text-[#f08c1a]" },
+  { Icon: ShieldIcon, bg: "bg-[#e6eef9]", color: "text-[#042b52]" },
+  { Icon: BookOpenIcon, bg: "bg-[#f8f2e3]", color: "text-[#a47a22]" },
+  { Icon: TruckIcon, bg: "bg-[#eaf0f7]", color: "text-[#2b5d92]" },
+  { Icon: UsersIcon, bg: "bg-[#eef2f6]", color: "text-[#4b6a88]" },
 ];
 
 export default async function AboutPage() {
@@ -102,10 +102,10 @@ export default async function AboutPage() {
         {/* The photo (or the fanned covers) on the same warm, dotted ground as the home page hero. */}
         <div data-reveal className="relative overflow-hidden rounded-[var(--radius-hero)] bg-blush-100 p-6 sm:p-10">
           <div aria-hidden className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(60%_70%_at_100%_0%,rgba(255,255,255,0.7),transparent_70%),radial-gradient(120%_100%_at_0%_100%,#fde3da_0%,#fcf1ed_55%,#fbf6f2_100%)]" />
-            <DottedPaper dot="rgba(199,58,42,0.16)" />
-            <Ring className="-bottom-20 -right-16 h-48 w-48" stroke="#f65d4e" opacity={0.2} />
-            <Sparkle className="left-[6%] top-[8%] w-4" delay="-2s" fill="#f65d4e" opacity={0.5} />
+            <div className="absolute inset-0 bg-[radial-gradient(60%_70%_at_100%_0%,rgba(255,255,255,0.7),transparent_70%),radial-gradient(120%_100%_at_0%_100%,#dbe6f3_0%,#eaf0f7_55%,#f6f8fb_100%)]" />
+            <DottedPaper dot="rgba(4,43,82,0.12)" />
+            <Ring className="-bottom-20 -right-16 h-48 w-48" stroke="#042b52" opacity={0.2} />
+            <Sparkle className="left-[6%] top-[8%] w-4" delay="-2s" fill="#042b52" opacity={0.5} />
             <Sparkle className="right-[8%] top-[14%] w-3" delay="-4s" fill="#e8b04b" opacity={0.65} />
           </div>
           <div className="relative">

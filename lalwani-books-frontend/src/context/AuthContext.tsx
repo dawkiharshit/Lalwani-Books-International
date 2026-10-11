@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { ApiError, clientApi } from "@/lib/api";
+import { AUTH_CHANGE_EVENT, forgetSharedSignIn } from "@/lib/auth-sync";
 import type { User } from "@/lib/types";
 
 interface AuthState {
@@ -9,13 +10,22 @@ interface AuthState {
   token: string | null;
   ready: boolean;
   login: (email: string, password: string) => Promise<User>;
+  /**
+   * Sign-up, step one: sends the form; the server emails a 6-digit code and
+   * creates nothing yet. `retryAfter` is how many seconds until a new code
+   * may be asked for.
+   */
   register: (data: {
     name: string;
     email: string;
     phone?: string;
     password: string;
     password_confirmation: string;
-  }) => Promise<{ user: User; otpSent: boolean }>;
+  }) => Promise<{ email: string; retryAfter: number }>;
+  /** Sign-up, step two: the emailed code creates the account and signs in. */
+  verifyRegistration: (email: string, code: string) => Promise<User>;
+  /** Ask for a fresh sign-up code; resolves to the seconds until the next one. */
+  resendRegistration: (email: string) => Promise<{ message: string; retryAfter: number }>;
   logout: () => Promise<void>;
   setUser: (u: User | null) => void;
   /** Sign in from a token obtained elsewhere — the Google handoff. */
@@ -109,22 +119,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string;
       password_confirmation: string;
     }) => {
-      const res = await clientApi<{ user: User; token: string; otp_sent?: boolean }>("/auth/register", {
+      const res = await clientApi<{ email: string; retry_after?: number }>("/auth/register", {
         method: "POST",
         body: data,
         token: null,
       });
-      persist(res.user, res.token);
-      clientApi("/cart/merge", { method: "POST", token: res.token }).catch(() => {});
+      // Nothing to store yet: the account only exists once the code is entered.
+      return { email: res.email, retryAfter: res.retry_after ?? 60 };
+    },
+    []
+  );
 
-      // The account is created even when the code could not be mailed, so the
-      // caller needs to know which of those happened.
-      return { user: res.user, otpSent: res.otp_sent !== false };
+  const verifyRegistration = useCallback(
+    async (email: string, code: string) => {
+      const res = await clientApi<{ user: User; token: string }>("/auth/register/verify", {
+        method: "POST",
+        body: { email, code },
+        token: null,
+      });
+      persist(res.user, res.token);
+      // merge guest cart into the new account's cart
+      clientApi("/cart/merge", { method: "POST", token: res.token }).catch(() => {});
+      return res.user;
     },
     [persist]
   );
 
+  const resendRegistration = useCallback(async (email: string) => {
+    const res = await clientApi<{ message: string; retry_after?: number }>("/auth/register/resend", {
+      method: "POST",
+      body: { email },
+      token: null,
+    });
+    return { message: res.message, retryAfter: res.retry_after ?? 60 };
+  }, []);
+
+  /*
+   * Signing out in the admin panel revokes a token the shop may share (see the
+   * login page), so the shop session ends the moment its token disappears from
+   * storage — on this tab or another one.
+   */
+  useEffect(() => {
+    const sync = () => {
+      if (!localStorage.getItem("lalwani_token")) {
+        setToken(null);
+        setUserState(null);
+      }
+    };
+    window.addEventListener(AUTH_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(AUTH_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
   const logout = useCallback(async () => {
+    const signedOut = localStorage.getItem("lalwani_token");
     try {
       await clientApi("/auth/logout", { method: "POST" });
     } catch {
@@ -134,6 +185,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("lalwani_user");
     setToken(null);
     setUserState(null);
+    // An admin who signed in here gave the panel this same token, just revoked.
+    forgetSharedSignIn(signedOut, { token: "lalwani_admin_token", user: "lalwani_admin_user" });
   }, []);
 
   const setUser = useCallback((u: User | null) => {
@@ -143,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, ready, login, register, logout, setUser, signIn: persist }}
+      value={{ user, token, ready, login, register, verifyRegistration, resendRegistration, logout, setUser, signIn: persist }}
     >
       {children}
     </AuthContext.Provider>

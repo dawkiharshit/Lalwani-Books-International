@@ -134,7 +134,7 @@ export default function AdminBranding() {
 
         {form.site_logo ? (
           <div className="mt-4 flex flex-wrap items-center gap-5">
-            <div className="flex h-24 min-w-[180px] items-center justify-center rounded-xl border border-blush-200 bg-[linear-gradient(45deg,#f2e4d7_25%,transparent_25%),linear-gradient(-45deg,#f2e4d7_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#f2e4d7_75%),linear-gradient(-45deg,transparent_75%,#f2e4d7_75%)] bg-[length:14px_14px] bg-[position:0_0,0_7px,7px_-7px,-7px_0] px-5">
+            <div className="flex h-24 min-w-[180px] items-center justify-center rounded-xl border border-blush-200 bg-[linear-gradient(45deg,#e3e8ef_25%,transparent_25%),linear-gradient(-45deg,#e3e8ef_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e3e8ef_75%),linear-gradient(-45deg,transparent_75%,#e3e8ef_75%)] bg-[length:14px_14px] bg-[position:0_0,0_7px,7px_-7px,-7px_0] px-5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={form.site_logo} alt="Current logo" className="max-h-16 max-w-[220px] object-contain" />
             </div>

@@ -17,6 +17,7 @@ export async function PopupGate() {
         discount: s.popup_discount || "",
         button: s.popup_button || "Subscribe",
         disclaimer: s.popup_disclaimer || "",
+        image: s.popup_image || "",
       }}
     />
   );

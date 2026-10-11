@@ -15,7 +15,7 @@ export default async function MaintenancePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-blush-50 px-6 py-16 text-center">
       <Link href="/" aria-label={settings.site_name}>
-        <Brand logo={settings.site_logo} name={settings.site_name} height={120} heightClass="h-[120px]" />
+        <Brand logo={settings.site_logo} name={settings.site_name} height={150} heightClass="h-[150px]" />
       </Link>
 
       <div className="max-w-md">

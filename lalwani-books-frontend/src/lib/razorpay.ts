@@ -77,7 +77,7 @@ export async function payWithRazorpay(orderNumber: string): Promise<void> {
       order_id: data.razorpay_order_id,
       prefill: data.prefill,
       notes: { order_number: data.order_number },
-      theme: { color: "#9c5c6b" },
+      theme: { color: "#042b52" },
       modal: {
         ondismiss: () => reject(new Error("Payment was cancelled — your order is saved as unpaid.")),
       },

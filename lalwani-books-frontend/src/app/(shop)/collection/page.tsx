@@ -9,11 +9,65 @@ import { PageBanner } from "@/components/PageBanner";
 import { Pagination } from "./filters";
 import { FilterSidebar } from "./filter-sidebar";
 import { CollectionToolbar } from "./toolbar";
+import { plainSnippet } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Shop Books",
-  description: "Browse fiction, Indian literature, children’s, academic, competitive-exam, business, self-help and science books.",
-};
+const SHOP_DESCRIPTION =
+  "Browse fiction, Indian literature, children’s, academic, competitive-exam, business, self-help and science books.";
+
+/**
+ * A title, description and canonical address for each kind of listing, so a
+ * category, author or publisher page can rank for its own name. Sorting and
+ * price filters only reorder the same books, so the canonical leaves them out.
+ * Search results are thin and endless: they stay out of the index, links on
+ * them are still followed. The lists come from the same cached requests the
+ * page makes.
+ */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Search> }): Promise<Metadata> {
+  const sp = await searchParams;
+  const get = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).trim() : "");
+  const page = Math.max(1, Math.floor(Number(get("page")) || 1));
+  const onPage = (canonical: string) => (page > 1 ? `${canonical}${canonical.includes("?") ? "&" : "?"}page=${page}` : canonical);
+  const suffix = page > 1 ? ` — Page ${page}` : "";
+
+  const search = get("search");
+  if (search) {
+    return { title: `Results for “${search.slice(0, 60)}”`, robots: { index: false, follow: true } };
+  }
+
+  const pick = async <T extends { slug: string; name: string }>(path: string, slug: string) =>
+    slug
+      ? api<{ data: T[] }>(path, { revalidate: 300 })
+          .then((r) => r.data.find((x) => x.slug === slug))
+          .catch(() => undefined)
+      : undefined;
+
+  const category = await pick<Category>("/categories", get("category"));
+  if (category) {
+    return {
+      title: `${category.name} Books${suffix}`,
+      description: plainSnippet(category.description) || `Buy ${category.name} books online from Lalwani Books International.`,
+      alternates: { canonical: onPage(`/collection?category=${encodeURIComponent(category.slug)}`) },
+    };
+  }
+  const author = await pick<Author>("/authors", get("author"));
+  if (author) {
+    return {
+      title: `Books by ${author.name}${suffix}`,
+      description: `Buy books by ${author.name} online from Lalwani Books International.`,
+      alternates: { canonical: onPage(`/collection?author=${encodeURIComponent(author.slug)}`) },
+    };
+  }
+  const publisher = await pick<Publisher>("/publishers", get("publisher"));
+  if (publisher) {
+    return {
+      title: `Books from ${publisher.name}${suffix}`,
+      description: `Buy books published by ${publisher.name} online from Lalwani Books International.`,
+      alternates: { canonical: onPage(`/collection?publisher=${encodeURIComponent(publisher.slug)}`) },
+    };
+  }
+
+  return { title: `Shop Books${suffix}`, description: SHOP_DESCRIPTION, alternates: { canonical: onPage("/collection") } };
+}
 
 export const revalidate = 60;
 

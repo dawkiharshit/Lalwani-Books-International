@@ -73,7 +73,7 @@ export function SettingsForm({
     if (!el) return;
     el.scrollIntoView({ block: "start" });
     el.animate(
-      [{ boxShadow: "0 0 0 3px rgba(246, 93, 78, 0.5)" }, { boxShadow: "0 0 0 3px rgba(246, 93, 78, 0)" }],
+      [{ boxShadow: "0 0 0 3px rgba(4, 43, 82, 0.4)" }, { boxShadow: "0 0 0 3px rgba(4, 43, 82, 0)" }],
       { duration: 2000, easing: "ease-out" }
     );
   }, [loaded]);

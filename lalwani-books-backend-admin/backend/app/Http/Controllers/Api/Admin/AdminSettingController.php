@@ -293,6 +293,8 @@ class AdminSettingController extends Controller
             'popup_discount' => '10% OFF',
             'popup_button' => 'Subscribe',
             'popup_disclaimer' => 'No spam. Unsubscribe anytime.',
+            // Set through admin/settings/image/popup_image, never typed in.
+            'popup_image' => '',
 
             // About — home section. Defaults carry the copy that used to be
             // hardcoded in the component, so the admin sees and edits the real text.
