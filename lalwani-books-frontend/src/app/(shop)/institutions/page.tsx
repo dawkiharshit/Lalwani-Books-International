@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/page-meta";
 import { CheckIcon } from "@/components/icons";
 import { DottedPaper } from "@/components/home/doodles";
-import { AudienceTile, INSTITUTION_AUDIENCES, INSTITUTIONS_LINE } from "@/components/home/institutions";
+import { INSTITUTIONS_LINE } from "@/components/home/institutions";
 import { QuoteForm } from "./quote-form";
 
 export function generateMetadata(): Promise<Metadata> {
@@ -40,12 +40,6 @@ export default function InstitutionsPage() {
             Schools · Universities · Libraries · Corporates
           </p>
           <p className="mt-4 text-[14.5px] leading-relaxed text-parchment/80">{INSTITUTIONS_LINE}</p>
-
-          <ul className="mt-7 grid grid-cols-2 gap-3">
-            {INSTITUTION_AUDIENCES.map((a) => (
-              <AudienceTile key={a.slug} audience={a} compact />
-            ))}
-          </ul>
 
           <ul className="mt-7 space-y-2.5">
             {POINTS.map((p) => (

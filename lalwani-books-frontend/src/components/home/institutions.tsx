@@ -4,46 +4,18 @@ import { ChevronIcon, PencilIcon, QuillIcon, ShelfIcon, UsersIcon } from "@/comp
 import { DottedPaper } from "@/components/home/doodles";
 
 /**
- * Who the institutional service is for — shared by the home band, /institutions
- * and the shop. Each tile opens /collection?for=<slug>: the books of its
- * categories (by slug, as set in admin → Categories), or every book when the
- * list is empty. A slug that no longer exists is simply skipped.
+ * Who the institutional service is for. The shop no longer shows these as
+ * cards — the home band and /institutions lead to one quote form — but each
+ * one still has its own shelf at /collection?for=<slug>, which heads itself
+ * with the icon and the line below: the books of its categories (by slug, as
+ * set in admin → Categories), or every book when the list is empty. A slug
+ * that no longer exists is simply skipped.
  */
 export const INSTITUTION_AUDIENCES = [
-  {
-    slug: "schools",
-    label: "Schools",
-    note: "Textbooks, reading lists, class sets",
-    Icon: PencilIcon,
-    categories: ["children", "academic", "science"],
-    // Photos from Unsplash (free to use under the Unsplash License), served
-    // resized by Unsplash's image service — see components/Image.
-    image: "https://images.unsplash.com/photo-1692269725827-699e04a11cdf?auto=format&fit=crop&w=800&q=70",
-  },
-  {
-    slug: "universities",
-    label: "Universities",
-    note: "Course books and reference titles",
-    Icon: QuillIcon,
-    categories: ["academic", "science", "competitive-exams", "business"],
-    image: "https://images.unsplash.com/photo-1758270704763-22072a90d3b6?auto=format&fit=crop&w=800&q=70",
-  },
-  {
-    slug: "libraries",
-    label: "Libraries",
-    note: "New collections and restocking",
-    Icon: ShelfIcon,
-    categories: [] as string[],
-    image: "https://images.unsplash.com/photo-1709924168698-620ea32c3488?auto=format&fit=crop&w=800&q=70",
-  },
-  {
-    slug: "corporates",
-    label: "Corporates",
-    note: "Training, gifting and office libraries",
-    Icon: UsersIcon,
-    categories: ["business", "self-help"],
-    image: "https://images.unsplash.com/photo-1573164574572-cb89e39749b4?auto=format&fit=crop&w=800&q=70",
-  },
+  { slug: "schools", label: "Schools", note: "Textbooks, reading lists, class sets", Icon: PencilIcon, categories: ["children", "academic", "science"] },
+  { slug: "universities", label: "Universities", note: "Course books and reference titles", Icon: QuillIcon, categories: ["academic", "science", "competitive-exams", "business"] },
+  { slug: "libraries", label: "Libraries", note: "New collections and restocking", Icon: ShelfIcon, categories: [] as string[] },
+  { slug: "corporates", label: "Corporates", note: "Training, gifting and office libraries", Icon: UsersIcon, categories: ["business", "self-help"] },
 ];
 
 export type InstitutionAudience = (typeof INSTITUTION_AUDIENCES)[number];
@@ -54,90 +26,20 @@ export function audienceBySlug(slug: string | undefined): InstitutionAudience | 
 
 export const INSTITUTIONS_LINE = "From a single reading list to an entire library, we source, supply and manage books at scale.";
 
-/** One audience tile, linking to its books in the shop. Used on the home band and /institutions. */
-export function AudienceTile({ audience: { slug, label, note, Icon }, compact = false }: { audience: InstitutionAudience; compact?: boolean }) {
-  return (
-    <li>
-      <Link
-        href={`/collection?for=${slug}`}
-        className={`group flex h-full flex-col rounded-2xl bg-white/[0.07] ring-1 ring-white/12 transition-[background-color,box-shadow,translate] duration-300 hover:-translate-y-1 hover:bg-white/[0.12] hover:ring-mustard/60 focus-visible:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mustard ${
-          compact ? "p-4" : "p-4 sm:p-5"
-        }`}
-      >
-        <span className={`flex items-center justify-center rounded-full bg-mustard/15 text-mustard transition-colors group-hover:bg-mustard group-hover:text-rose-800 ${compact ? "h-9 w-9" : "h-10 w-10"}`}>
-          <Icon className={compact ? "h-[18px] w-[18px]" : "h-5 w-5"} />
-        </span>
-        <span className={`font-semibold ${compact ? "mt-2.5 text-[14.5px]" : "mt-3 text-[15px]"}`}>{label}</span>
-        <span className="mt-1 text-[12px] leading-snug text-parchment/70">{note}</span>
-        <span className="mt-auto inline-flex items-center gap-1 pt-3 text-[12px] font-semibold text-mustard">
-          View books
-          <ChevronIcon className="h-3 w-3 -rotate-90 transition-transform group-hover:translate-x-0.5" strokeWidth={2.4} />
-        </span>
-      </Link>
-    </li>
-  );
-}
-
-/**
- * One audience on the home band: its photo under a navy wash (deep where the
- * words sit), icon, name, what they buy and how many books. On hover the
- * photo zooms in, the card lifts and the icon and arrow light up.
- */
-function AudienceCard({ audience: { slug, label, note, Icon, image }, books }: { audience: InstitutionAudience; books?: number }) {
-  return (
-    <li>
-      <Link
-        href={`/collection?for=${slug}`}
-        className="group relative flex h-full min-h-[14rem] flex-col overflow-hidden rounded-2xl bg-rose-700 p-4 text-white shadow-[0_14px_30px_-18px_rgba(4,43,82,0.6)] ring-1 ring-black/5 transition-[translate,box-shadow] duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_26px_46px_-18px_rgba(4,43,82,0.65)] focus-visible:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mustard sm:p-5"
-      >
-        <Image
-          src={image}
-          alt=""
-          fill
-          sizes="(max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-        />
-        <span
-          aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(to_top,rgba(4,43,82,0.96)_0%,rgba(4,43,82,0.82)_42%,rgba(4,43,82,0.35)_75%,rgba(4,43,82,0.15)_100%)] transition-opacity duration-500 group-hover:opacity-90"
-        />
-        <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-white ring-1 ring-white/35 backdrop-blur-sm transition-colors duration-300 group-hover:bg-mustard group-hover:text-rose-800 group-hover:ring-mustard sm:h-12 sm:w-12">
-          <Icon className="h-6 w-6" />
-        </span>
-        <span className="relative mt-auto pt-8 text-[16px] font-semibold leading-tight [text-shadow:0_2px_10px_rgba(0,0,0,0.35)] sm:text-[17px]">
-          {label}
-        </span>
-        <span className="relative mt-1 text-[12px] leading-snug text-white/90 sm:text-[12.5px]">{note}</span>
-        <span className="relative mt-4 flex items-center justify-between gap-2">
-          <span className="whitespace-nowrap rounded-full bg-mustard px-2.5 py-1 text-[11.5px] font-bold text-rose-800 sm:px-3 sm:text-[12px]">
-            {books ? `${books} ${books === 1 ? "book" : "books"}` : "View books"}
-          </span>
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/35 transition-colors duration-300 group-hover:bg-white group-hover:text-rose-700">
-            <ChevronIcon className="h-3.5 w-3.5 -rotate-90 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={2.4} />
-          </span>
-        </span>
-      </Link>
-    </li>
-  );
-}
-
 type Cover = { image: string | null; name: string };
 
 /**
  * Home page band for bulk buyers, on a light ground so it does not stack a
  * second dark block under the About band: the promise, a quote button (and
- * the shop's phone number for those who would rather call), a fan of real
- * covers that opens out on hover, and a card per audience leading to its books.
+ * the shop's phone number for those who would rather call), and a fan of real
+ * covers that opens out on hover.
  */
 export function InstitutionsBand({
   covers = [],
-  counts = {},
   phone = "",
 }: {
   /** Up to three covers for the fan; ones without a picture are skipped. */
   covers?: Cover[];
-  /** Books per audience slug, shown on the cards. */
-  counts?: Record<string, number>;
   phone?: string;
 }) {
   const fan = covers.filter((c): c is { image: string; name: string } => Boolean(c.image)).slice(0, 3);
@@ -214,12 +116,6 @@ export function InstitutionsBand({
             </div>
           )}
         </div>
-
-        <ul className="relative mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:mt-12 lg:grid-cols-4">
-          {INSTITUTION_AUDIENCES.map((a) => (
-            <AudienceCard key={a.slug} audience={a} books={counts[a.slug]} />
-          ))}
-        </ul>
       </div>
     </section>
   );

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { clientApi, ApiError } from "@/admin/lib/api";
 import { formatDate } from "@/admin/lib/format";
 import { Spinner } from "@/admin/components/ui";
+import { Attachments, type Attachment } from "./attachments";
+import { MESSAGES_CHANGED } from "./events";
 
 interface Message {
   id: number;
@@ -13,6 +15,8 @@ interface Message {
   message: string;
   is_read: boolean;
   created_at: string;
+  /** A reading list sent with a quote request; empty for other messages. */
+  attachments?: Attachment[];
 }
 
 interface Subscriber {
@@ -76,12 +80,15 @@ export default function AdminInbox() {
   async function markRead(m: Message, read: boolean) {
     await clientApi(`/admin/messages/${m.id}`, { method: "PUT", body: { is_read: read } });
     load();
+    // Keeps the count in the sidebar in step with this list.
+    window.dispatchEvent(new Event(MESSAGES_CHANGED));
   }
 
   async function removeMessage(m: Message) {
     if (!confirm("Delete this message?")) return;
     await clientApi(`/admin/messages/${m.id}`, { method: "DELETE" });
     load();
+    window.dispatchEvent(new Event(MESSAGES_CHANGED));
   }
 
   async function removeSubscriber(s: Subscriber) {
@@ -133,9 +140,15 @@ export default function AdminInbox() {
               <article key={m.id} className={`card px-6 py-5 ${m.is_read ? "" : "ring-1 ring-rose-300"}`}>
                 <div className="flex flex-wrap items-center gap-3">
                   <p className="text-[13px] font-semibold text-ink">{m.name}</p>
-                  <a href={`mailto:${m.email}`} className="text-[12px] text-rose-600 hover:underline">
-                    {m.email}
-                  </a>
+                  {/* A quote request can arrive with a phone number instead of
+                      an email; the number is in the message itself. */}
+                  {m.email ? (
+                    <a href={`mailto:${m.email}`} className="text-[12px] text-rose-600 hover:underline">
+                      {m.email}
+                    </a>
+                  ) : (
+                    <span className="text-[12px] text-fog">No email — see the phone number below</span>
+                  )}
                   <span className="text-[11px] text-fog">{formatDate(m.created_at)}</span>
                   {!m.is_read && (
                     <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700">
@@ -159,6 +172,7 @@ export default function AdminInbox() {
                 </div>
                 {m.subject && <p className="mt-2 text-[13px] font-medium text-cocoa">{m.subject}</p>}
                 <p className="mt-1 whitespace-pre-line text-[12.5px] leading-relaxed text-cocoa">{m.message}</p>
+                {m.attachments && m.attachments.length > 0 && <Attachments messageId={m.id} files={m.attachments} />}
               </article>
             ))}
           </div>

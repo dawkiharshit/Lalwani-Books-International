@@ -45,14 +45,39 @@ class InstitutionEnquiryTest extends TestCase
         }
     }
 
-    public function test_the_essentials_are_required(): void
+    public function test_nothing_is_demanded_except_a_way_to_reply(): void
     {
+        // An empty form only misses the one thing a quote needs.
         $this->postJson('/api/v1/institution-enquiries', [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'organisation', 'type', 'email', 'phone']);
+            ->assertJsonPath('message', 'Leave us an email address or a phone number, so we can send you the quote.');
+
+        // A phone number on its own is enough, and so is an email on its own.
+        $this->postJson('/api/v1/institution-enquiries', ['phone' => '9811000000'])->assertCreated();
+        $this->postJson('/api/v1/institution-enquiries', ['email' => 'someone@example.test'])->assertCreated();
+
+        $saved = ContactMessage::query()->latest('id')->first();
+        $this->assertSame('Quote request: Books for Institutions', $saved->subject);
+        $this->assertSame('Not given', $saved->name);
+        $this->assertStringContainsString('Email: someone@example.test', $saved->message);
+        // Nothing is written down that was never given.
+        $this->assertStringNotContainsString('Phone:', $saved->message);
+        $this->assertStringNotContainsString('Organisation:', $saved->message);
     }
 
-    public function test_a_phone_number_must_be_callable(): void
+    public function test_some_of_the_form_is_enough(): void
+    {
+        $this->postJson('/api/v1/institution-enquiries', [
+            'organisation' => 'Sunrise Library',
+            'email' => 'orders@sunrise.example',
+        ])->assertCreated();
+
+        $saved = ContactMessage::query()->latest('id')->first();
+        $this->assertSame('Quote request: Sunrise Library', $saved->subject);
+        $this->assertSame('Sunrise Library', $saved->name);
+    }
+
+    public function test_a_phone_number_given_must_be_callable(): void
     {
         foreach (['12345', 'call me maybe', '+91 98765 43210 12345'] as $bad) {
             $this->postJson('/api/v1/institution-enquiries', $this->enquiry(['phone' => $bad]))

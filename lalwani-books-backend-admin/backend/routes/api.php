@@ -214,6 +214,10 @@ Route::prefix('v1')->group(function () {
             Route::delete('/voice-queries/{id}', [\App\Http\Controllers\Api\Admin\AdminVoiceQueryController::class, 'destroy'])
                 ->where('id', '[0-9A-HJKMNP-TV-Z]{26}');
             Route::get('/messages', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'messages']);
+            Route::get('/messages/count', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'messageCount']);
+            // A book list attached to a quote request (see App\Support\QuoteFiles).
+            Route::get('/messages/{message}/files/{file}', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'messageFile'])
+                ->where('file', '[1-9][0-9]?');
             Route::put('/messages/{message}', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'updateMessage']);
             Route::delete('/messages/{message}', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'destroyMessage']);
 

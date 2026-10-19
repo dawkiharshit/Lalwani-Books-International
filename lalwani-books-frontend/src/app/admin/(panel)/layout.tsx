@@ -13,6 +13,7 @@ import { clientApi, PENDING_EVENT } from "@/admin/lib/api";
 import { canOpen, firstPage } from "@/admin/lib/staff";
 import { APPROVALS_CHANGED } from "./approvals/change-details";
 import { VOICE_QUERIES_CHANGED } from "./voice-queries/recording";
+import { MESSAGES_CHANGED } from "./inbox/events";
 import {
   AtIcon,
   BoxIcon,
@@ -327,6 +328,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [hearsVoice, pathname]);
 
+  /**
+   * Messages nobody has read yet, shown beside "Messages & Subscribers".
+   * One can arrive at any moment — a contact form or a quote request — so
+   * this also looks again every minute while the panel is in front.
+   */
+  const [unread, setUnread] = useState(0);
+  const readsInbox = Boolean(user && canOpen(user, "/admin/inbox"));
+  useEffect(() => {
+    if (!readsInbox) return;
+    let cancelled = false;
+    const count = () =>
+      clientApi<{ data: { unread: number } }>("/admin/messages/count")
+        .then((res) => !cancelled && setUnread(res.data.unread))
+        .catch(() => {});
+    void count();
+    const timer = setInterval(() => {
+      if (!document.hidden) void count();
+    }, 60_000);
+    // And at once when one is read, unread again or deleted.
+    window.addEventListener(MESSAGES_CHANGED, count);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      window.removeEventListener(MESSAGES_CHANGED, count);
+    };
+  }, [readsInbox, pathname]);
+
   // Until the session is confirmed (and while a customer is being sent
   // away), show the panel's frame as a loading screen, not a blank page.
   if (!ready || !user || (!user.is_admin && !user.staff)) {
@@ -342,7 +370,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ...g,
       links: g.links
         .filter((l) => canOpen(user, l.href))
-        .map((l) => (l.href === "/admin/voice-queries" ? { ...l, badge: unheard } : l)),
+        .map((l) => {
+          if (l.href === "/admin/voice-queries") return { ...l, badge: unheard };
+          if (l.href === "/admin/inbox") return { ...l, badge: unread };
+          return l;
+        }),
     })).filter((g) => g.links.length),
     user.is_admin
       ? {

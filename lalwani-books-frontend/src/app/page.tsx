@@ -31,7 +31,7 @@ import { getSettings } from "@/lib/settings";
 import { siteShare } from "@/lib/page-meta";
 import { SITE_URL, absoluteUrl } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
-import { INSTITUTION_AUDIENCES, InstitutionsBand } from "@/components/home/institutions";
+import { InstitutionsBand } from "@/components/home/institutions";
 import { BrowseShelves, type ShelfSummary } from "@/components/home/shelves";
 
 export const revalidate = 120;
@@ -191,11 +191,8 @@ export default async function HomePage() {
   // Ids climb as books are added, so this is the catalogue newest first.
   const byNewest = [...books].sort((a, b) => b.id - a.id);
 
-  // Books for Institutions band: how many books each audience's shelf holds,
-  // and a fan of study covers (other books if there are too few of those).
-  const shelfCount = (slugs: string[]) =>
-    slugs.length ? categories.filter((c) => slugs.includes(c.slug)).reduce((n, c) => n + c.products_count, 0) : all.meta.total;
-  const institutionCounts = Object.fromEntries(INSTITUTION_AUDIENCES.map((a) => [a.slug, shelfCount(a.categories)]));
+  // Books for Institutions band: a fan of study covers (other books if there
+  // are too few of those).
   const studySlugs = ["academic", "science", "children", "competitive-exams"];
   const withCovers = books.filter((b) => b.image);
   const institutionCovers = await distinctCovers([
@@ -350,7 +347,7 @@ export default async function HomePage() {
         )}
         <AboutHome settings={settings} books={byRating.slice(5)} />
         {/* Bulk buyers: schools, universities, libraries, companies → /institutions. */}
-        <InstitutionsBand covers={institutionCovers} counts={institutionCounts} phone={String(settings.support_phone ?? "")} />
+        <InstitutionsBand covers={institutionCovers} phone={String(settings.support_phone ?? "")} />
         {on("blog") && <LatestPosts posts={posts} title={text("home_blog_title", "From The Blog")} />}
         {/* Readers' words close the page, right above the footer. */}
         {on("testimonials") && <TestimonialBand items={testimonials} title={text("home_testimonials_title", "What readers say")} />}

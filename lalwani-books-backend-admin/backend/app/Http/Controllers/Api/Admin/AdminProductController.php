@@ -8,17 +8,29 @@ use App\Models\Publisher;
 use App\Models\Product;
 use App\Support\GiftIdeas;
 use App\Support\YouTube;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AdminProductController extends Controller
 {
+    /** The shop reads dates in India time; the database stores them in UTC. */
+    private const TZ = 'Asia/Kolkata';
+
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'images'])->orderBy('name');
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            // The day a book was listed, as the admin panel's date boxes send it.
+            'listed_from' => ['nullable', 'date_format:Y-m-d'],
+            'listed_to' => ['nullable', 'date_format:Y-m-d'],
+            'sort' => ['nullable', 'in:name,newest,oldest'],
+        ]);
 
-        if ($search = trim((string) $request->query('search'))) {
+        $query = Product::with(['category', 'images']);
+
+        if ($search = trim((string) ($filters['search'] ?? ''))) {
             // Stock codes are how the admin looks a product up off an invoice,
             // so the search box has to match them as well as the name.
             $query->where(fn ($q) => $q
@@ -27,6 +39,28 @@ class AdminProductController extends Controller
                 ->orWhere('isbn', 'like', "%{$search}%")
                 ->orWhere('sku', 'like', "%{$search}%"));
         }
+
+        // "Listed between these two days", inclusive of both. Dates the wrong
+        // way round are read as the range the admin meant, not as nothing.
+        $from = $filters['listed_from'] ?? null;
+        $to = $filters['listed_to'] ?? null;
+        if ($from && $to && $from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+        if ($from) {
+            $query->where('created_at', '>=', self::dayOpens($from));
+        }
+        if ($to) {
+            $query->where('created_at', '<=', self::dayCloses($to));
+        }
+
+        match ($filters['sort'] ?? 'name') {
+            // id breaks the tie, so books listed in the same second keep a
+            // steady order instead of shuffling between pages.
+            'newest' => $query->orderByDesc('created_at')->orderByDesc('id'),
+            'oldest' => $query->orderBy('created_at')->orderBy('id'),
+            default => $query->orderBy('name'),
+        };
 
         $page = $query->paginate(20);
         $giftIds = GiftIdeas::ids();
@@ -46,6 +80,21 @@ class AdminProductController extends Controller
                 'total' => $page->total(),
             ],
         ]);
+    }
+
+    /**
+     * The first and last moment of a day in the shop's own time, as UTC — what
+     * the database holds. Without this, a book listed before 5:30am in India
+     * counts as the day before, because that is the date in UTC.
+     */
+    private static function dayOpens(string $date): CarbonImmutable
+    {
+        return CarbonImmutable::createFromFormat('Y-m-d', $date, self::TZ)->startOfDay()->utc();
+    }
+
+    private static function dayCloses(string $date): CarbonImmutable
+    {
+        return CarbonImmutable::createFromFormat('Y-m-d', $date, self::TZ)->endOfDay()->utc();
     }
 
     /** Single product for the admin edit form — no scanning a paginated list. */
