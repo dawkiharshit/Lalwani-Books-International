@@ -1,6 +1,8 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { Footer } from "@/components/Footer";
 import { AnnouncementBar } from "@/components/AnnouncementBar";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { VoiceQueryButton } from "@/components/voice/VoiceQueryButton";
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +13,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
       <SiteHeader />
       <main className="container-shop flex-1 pt-8 pb-20">{children}</main>
       <Footer />
+      <WhatsAppButton />
+      <VoiceQueryButton />
     </div>
   );
 }

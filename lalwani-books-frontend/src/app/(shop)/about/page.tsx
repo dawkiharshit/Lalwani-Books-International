@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/page-meta";
 import Link from "next/link";
 import Image from "@/components/Image";
 import { api } from "@/lib/api";
@@ -11,11 +12,14 @@ import { adminStats } from "@/components/home/connected";
 import { DottedPaper, Ring, Sparkle } from "@/components/home/doodles";
 import { getSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description:
-    "Lalwani Books International brings readers, students and institutions the books they need — genuine editions from publishers in India and abroad.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
+    title: "About Us",
+    description:
+      "Lalwani Books International brings readers, students and institutions the books they need — genuine editions from publishers in India and abroad.",
+    path: "/about",
+  });
+}
 
 /**
  * Icons and tints stay in code; every line of copy comes from admin → About

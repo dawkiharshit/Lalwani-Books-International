@@ -19,11 +19,19 @@ export function ProductImage({
   sizes,
   className = "",
   showLabel = true,
+  eager = false,
 }: {
   product: Subject;
   sizes: string;
   className?: string;
   showLabel?: boolean;
+  /**
+   * For the first covers on a page: fetched straight away, at high priority,
+   * instead of once the browser has run the scripts and worked out that they
+   * are on screen. On a phone that wait put the first cover — the largest
+   * thing on the page — about a second late.
+   */
+  eager?: boolean;
   /** Accepted for older call sites; the drawn cover has no padding. */
   padClass?: string;
 }) {
@@ -42,6 +50,8 @@ export function ProductImage({
           sizes={sizes}
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
+          loading={eager ? "eager" : undefined}
+          fetchPriority={eager ? "high" : undefined}
           className={`object-cover ${className}`}
         />
       </>

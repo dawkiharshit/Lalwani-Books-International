@@ -20,6 +20,7 @@ const EXPLORE: FooterColumn = {
     { label: "About Us", href: "/about" },
     { label: "All Books", href: "/collection" },
     { label: "New Arrivals", href: "/collection?sort=newest" },
+    { label: "Books for Institutions", href: "/institutions" },
     { label: "Blog", href: "/blog" },
     { label: "Contact Us", href: "/contact" },
   ],

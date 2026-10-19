@@ -38,7 +38,8 @@ function TrackForm() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <PageBanner title="Track Your Order" crumbs={[{ label: "Track Order" }]} />
+      {/* The form below carries the page's visible main heading. */}
+      <PageBanner title="Track Your Order" as="p" crumbs={[{ label: "Track Order" }]} />
 
       <form onSubmit={submit} className="card p-8">
         <h1 className="text-center font-serif text-[1.9rem] text-ink">Track Your Order</h1>
@@ -47,8 +48,9 @@ function TrackForm() {
         </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-cocoa">Order number</label>
+            <label htmlFor="track-order-number" className="mb-1 block text-[11px] font-medium text-cocoa">Order number</label>
             <input
+              id="track-order-number"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
               placeholder="LBI-20261005-XXXX"
@@ -57,8 +59,9 @@ function TrackForm() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-cocoa">Email</label>
+            <label htmlFor="track-email" className="mb-1 block text-[11px] font-medium text-cocoa">Email</label>
             <input
+              id="track-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

@@ -26,8 +26,9 @@ class RefreshStorefront
      */
     public function terminate(Request $request, Response $response): void
     {
-        // Reads change nothing, and a rejected write changed nothing either.
-        if ($request->isMethod('GET') || $response->getStatusCode() >= 300) {
+        // Reads change nothing, and a rejected write changed nothing either —
+        // nor does a staff change held for approval (202).
+        if ($request->isMethod('GET') || $response->getStatusCode() >= 300 || $response->getStatusCode() === 202) {
             return;
         }
 

@@ -47,6 +47,18 @@ class GatewayCredentials
             'mail_from_address',
             'mail_from_name',
         ],
+        // WhatsApp messages through AiGrowBot (admin → WhatsApp).
+        'whatsapp' => [
+            'aigrowbot_webhook_url',
+            'aigrowbot_api_username',
+            'aigrowbot_secret_key',
+        ],
+        // Order messages from the shop's own AiGrowBot templates (admin →
+        // WhatsApp): the account name and a token from AiGrowBot → API Management.
+        'whatsapp_api' => [
+            'aigrowbot_tenant',
+            'aigrowbot_api_token',
+        ],
     ];
 
     /** Keys whose value must never leave the server. */
@@ -56,6 +68,8 @@ class GatewayCredentials
         'shiprocket_password',
         'mail_password',
         'google_client_secret',
+        'aigrowbot_secret_key',
+        'aigrowbot_api_token',
     ];
 
     /** The keys belonging to one group, or [] for an unknown group. */
@@ -76,8 +90,46 @@ class GatewayCredentials
         return (string) (config('gateways.env.'.$key) ?? '');
     }
 
-    /** Read a credential: admin panel first, then .env. */
+    /** The group a key belongs to, if any. */
+    public static function groupOf(string $key): ?string
+    {
+        foreach (self::GROUPS as $group => $keys) {
+            if (in_array($key, $keys, true)) {
+                return $group;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Has the admin disconnected this integration? Its details stay saved —
+     * so "Connect again" brings it straight back — but nothing uses them.
+     */
+    public static function isOff(string $group): bool
+    {
+        return (string) Setting::get('gw_off_'.$group, '') === '1';
+    }
+
+    public static function setOff(string $group, bool $off): void
+    {
+        Setting::set('gw_off_'.$group, $off ? '1' : '');
+    }
+
+    /**
+     * Read a credential: admin panel first, then .env. A disconnected
+     * integration reads as not set up at all — .env included — everywhere
+     * the shop asks.
+     */
     public static function get(string $key, string $default = ''): string
+    {
+        $group = self::groupOf($key);
+
+        return $group !== null && self::isOff($group) ? $default : self::saved($key, $default);
+    }
+
+    /** The value as saved, even while its integration is disconnected — for the admin screen. */
+    public static function saved(string $key, string $default = ''): string
     {
         $stored = (string) Setting::get('gw_'.$key, '');
 

@@ -10,7 +10,7 @@ import { Stars } from "./ui";
  * Bookory book card: a rounded cover, then title, rating, author and a coral
  * price. Wishlist sits on the cover; add-to-cart sits under the price.
  */
-export function ProductCard({ product }: { product: ProductCardType }) {
+export function ProductCard({ product, eager = false }: { product: ProductCardType; /** The first covers on the page: see ProductImage. */ eager?: boolean }) {
   const off = product.compare_at_price
     ? Math.round((1 - product.price / product.compare_at_price) * 100)
     : 0;
@@ -20,6 +20,7 @@ export function ProductCard({ product }: { product: ProductCardType }) {
       <div className="relative overflow-hidden rounded-[10px] bg-blush-150 pb-[140%] transition-[translate,box-shadow] duration-300 ease-out group-hover:-translate-y-1.5 group-hover:shadow-[0_22px_40px_-22px_rgba(0,0,0,0.55)]">
         <ProductImage
           product={product}
+          eager={eager}
           sizes="(max-width: 640px) 46vw, (max-width: 1280px) 25vw, 18vw"
           className="transition-transform duration-500 ease-out group-hover:scale-[1.04]"
         />
@@ -49,11 +50,16 @@ export function ProductCard({ product }: { product: ProductCardType }) {
         </p>
 
         <div className="mt-1.5 flex items-center gap-1.5">
-          <Stars rating={product.rating_avg} className="h-3 w-3" />
+          <Stars rating={product.rating_avg} />
           <span className="text-[11.5px] text-ink">{product.rating_count}</span>
         </div>
 
         {product.author && <p className="mt-1 line-clamp-1 text-[12px] text-fog">{product.author}</p>}
+        {product.isbn && (
+          <p className="mt-0.5 line-clamp-1 text-[11px] tabular-nums text-fog">
+            ISBN <span className="text-cocoa">{product.isbn}</span>
+          </p>
+        )}
 
         <div className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-2">
           <span className="text-[18px] font-semibold leading-none text-rose-600">{money(product.price)}</span>

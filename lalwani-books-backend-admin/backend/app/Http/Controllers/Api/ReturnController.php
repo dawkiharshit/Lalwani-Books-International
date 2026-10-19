@@ -116,16 +116,16 @@ class ReturnController extends Controller
             'status' => 'requested',
         ]);
 
-        // Let the shop know a return is waiting — never block the request on it.
-        if ($shopEmail = \App\Models\Setting::get('support_email', '')) {
-            try {
-                \Illuminate\Support\Facades\Mail::raw(
-                    "A return/replacement was requested for order {$order->order_number} ({$return->type}, reason: {$return->reason}). Review it in Admin → Returns.",
-                    fn ($m) => $m->to($shopEmail)->subject("Return requested — {$order->order_number}")
-                );
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Return notify failed', ['error' => $e->getMessage()]);
-            }
+        // Let the shop know a return is waiting — after the customer has their
+        // answer, never blocking the request on it.
+        if ($shopEmail = (string) \App\Models\Setting::get('support_email', '')) {
+            \App\Support\MailLater::raw(
+                $shopEmail,
+                "Return requested — {$order->order_number}",
+                "A return/replacement was requested for order {$order->order_number} ({$return->type}, reason: {$return->reason}). Review it in Admin → Returns.",
+                'Return request note to the shop',
+                ['order' => $order->order_number]
+            );
         }
 
         return response()->json(['data' => $return->load('order')->toPayload()], 201);

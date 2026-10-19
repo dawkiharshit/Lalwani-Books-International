@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Media;
+use App\Support\YouTube;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
@@ -84,6 +86,34 @@ class Product extends Model
         return $query->where('is_active', true);
     }
 
+    /**
+     * The shop's search: title, author, publisher, ISBN (with or without
+     * dashes, 10 or 13 digits) or subject (the category's name). Typed % and _
+     * are letters, not wildcards. Search insights count matches with it too.
+     */
+    public function scopeSearch($query, string $search)
+    {
+        $like = '%'.addcslashes($search, '%_\\').'%';
+        $digits = \App\Support\Isbn::digits($search);
+
+        return $query->where(function ($q) use ($like, $digits) {
+            $q->where('name', 'like', $like)
+                ->orWhere('tagline', 'like', $like)
+                ->orWhere('author', 'like', $like)
+                ->orWhere('publisher', 'like', $like)
+                ->orWhere('isbn', 'like', $like)
+                ->orWhereHas('category', fn ($c) => $c->where('name', 'like', $like))
+                ->orWhere('notes_top', 'like', $like)
+                ->orWhere('notes_heart', 'like', $like)
+                ->orWhere('notes_base', 'like', $like);
+            if (strlen($digits) >= 4) {
+                foreach (\App\Support\Isbn::variants($digits) as $isbn) {
+                    $q->orWhereRaw("REPLACE(REPLACE(isbn, '-', ''), ' ', '') LIKE ?", ['%'.$isbn.'%']);
+                }
+            }
+        });
+    }
+
     public function recalculateRating(): void
     {
         $agg = $this->approvedReviews()
@@ -97,19 +127,10 @@ class Product extends Model
     }
 
 
-    /** Public URL for an image reference: storage uploads get the backend origin. */
+    /** Where an uploaded picture lives, as the storefront asks for it (see Media). */
     public static function imageUrl(?string $path): ?string
     {
-        if (!$path) {
-            return null;
-        }
-        if (str_starts_with($path, "storage/")) {
-            // Root-relative: the Next.js frontend proxies /storage/* to this
-            // backend, so uploads stay same-origin for every page that shows them.
-            return "/".$path;
-        }
-
-        return $path;
+        return Media::url($path);
     }
 
     public function toCard(): array
@@ -121,6 +142,8 @@ class Product extends Model
             'tagline' => $this->tagline,
             // Shown under the title on every book card.
             'author' => $this->author,
+            // Shown under the author, so a reader can note or search it.
+            'isbn' => $this->isbn,
             'author_id' => $this->author_id,
             'publisher_id' => $this->publisher_id,
             'price' => $this->price,
@@ -153,7 +176,9 @@ class Product extends Model
      *  uploaded file, or nothing. */
     public function videoPayload(): ?array
     {
-        if ($this->video_url) {
+        // A link that is not a YouTube video (saved before links were checked)
+        // never hides an uploaded video.
+        if ($this->video_url && YouTube::id($this->video_url)) {
             return ['type' => 'youtube', 'url' => $this->video_url];
         }
         if ($this->video_path) {

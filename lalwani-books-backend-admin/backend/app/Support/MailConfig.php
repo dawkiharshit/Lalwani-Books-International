@@ -16,10 +16,14 @@ use Throwable;
  */
 class MailConfig
 {
-    /** Has the shop owner saved SMTP details in the admin panel? */
+    /**
+     * Has the shop owner saved SMTP details in the admin panel (and not
+     * disconnected them)? When not, the server's own mail setup in .env is used.
+     */
     public static function configured(): bool
     {
-        return self::stored('mail_host') !== '' && self::stored('mail_from_address') !== '';
+        return ! GatewayCredentials::isOff('mail')
+            && self::stored('mail_host') !== '' && self::stored('mail_from_address') !== '';
     }
 
     /**

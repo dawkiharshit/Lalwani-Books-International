@@ -17,4 +17,10 @@ class Review extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    /** The signed-in customer who wrote it, if any — for their profile picture. */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

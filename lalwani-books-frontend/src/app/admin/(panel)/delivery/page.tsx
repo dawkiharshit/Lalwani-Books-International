@@ -37,6 +37,7 @@ export default function AdminDelivery() {
   return (
     <IntegrationPanel
       group="delivery"
+      disconnect={{ name: "Shiprocket", note: "Orders are not sent to Shiprocket until you connect again, so you dispatch them yourself." }}
       title="Delivery"
       blurb="Connects with a Shiprocket API user (your normal Shiprocket login is refused by their API), stored encrypted. With this connected you can push an order for pickup straight from the Orders screen."
       sectionTitle="Shiprocket — delivery partner"

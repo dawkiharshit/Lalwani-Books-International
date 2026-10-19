@@ -1,14 +1,17 @@
 import type { MetadataRoute } from "next";
 import { api } from "@/lib/api";
 import { SITE_URL } from "@/lib/seo";
-import type { Category, Paginated, ProductCard } from "@/lib/types";
+import { SHELVES } from "@/lib/shelves";
+import type { Author, Category, Paginated, ProductCard, Publisher } from "@/lib/types";
+import { INSTITUTION_AUDIENCES } from "@/components/home/institutions";
 
 export const revalidate = 3600;
 
 /**
  * Every public page a search engine should know about: the main pages, every
- * book (all pages of the catalogue, not just the first 48), each category, the
- * blog posts and the help/legal pages.
+ * book (all pages of the catalogue, not just the first 48), each category, each
+ * author and publisher with books in stock, the books-for-institutions lists,
+ * the blog posts and the help/legal pages.
  *
  * No made-up "last modified" dates: stamping everything with the time of the
  * build told crawlers the whole shop changed every hour, which they learn to
@@ -27,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/authors", 0.7),
     page("/publications", 0.7),
     page("/blog", 0.6),
+    page("/institutions", 0.7, "monthly"),
     page("/about", 0.5, "monthly"),
     page("/contact", 0.5, "monthly"),
     page("/track-order", 0.3, "monthly"),
@@ -59,5 +63,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     )
     .catch(() => []);
 
-  return [...main, ...categories, ...books, ...posts];
+  // An author or publisher page with no live books would only show "no books".
+  const listed = async <T extends { slug: string; products_count: number }>(path: string, key: string) =>
+    api<{ data: T[] }>(path, { revalidate: 3600 })
+      .then((r) => r.data.filter((x) => x.products_count > 0).map((x) => page(`/collection?${key}=${encodeURIComponent(x.slug)}`, 0.6)))
+      .catch(() => []);
+  const [authors, publishers] = await Promise.all([listed<Author>("/authors", "author"), listed<Publisher>("/publishers", "publisher")]);
+
+  // Browse By Genre's lists: New Arrivals, Bestsellers, The Lalwani Edit, Gift Ideas, Non-Fiction.
+  const shelves = SHELVES.map((s) => page(`/collection?shelf=${s.slug}`, 0.7));
+  // Books for Schools, Universities, Libraries, Corporates.
+  const audiences = INSTITUTION_AUDIENCES.map((a) => page(`/collection?for=${a.slug}`, 0.5, "monthly"));
+
+  return [...main, ...shelves, ...categories, ...audiences, ...authors, ...publishers, ...books, ...posts];
 }

@@ -299,6 +299,7 @@ export function FilterSidebar({
   publishers = [],
   priceFloor,
   priceCeil,
+  defaultSort = "featured",
   onApply,
   onClose,
 }: {
@@ -309,6 +310,8 @@ export function FilterSidebar({
   publishers?: FilterOption[];
   priceFloor: number;
   priceCeil: number;
+  /** The order the page uses with no ?sort= — New Arrivals is newest first. */
+  defaultSort?: string;
   /** On a phone this closes the filter sheet so the results show at once. */
   onApply?: () => void;
   /**
@@ -343,7 +346,7 @@ export function FilterSidebar({
   const search = params.get("search") ?? "";
   const minParam = params.get("min_price") ?? "";
   const maxParam = params.get("max_price") ?? "";
-  const sort = params.get("sort") ?? "featured";
+  const sort = params.get("sort") ?? defaultSort;
 
   const categoryName = categories.find((c) => c.slug === category)?.name;
   const authorName = authors.find((a) => a.slug === author)?.name;
@@ -365,7 +368,7 @@ export function FilterSidebar({
         ]
       : []),
   ];
-  const anything = chips.length > 0 || sort !== "featured";
+  const anything = chips.length > 0 || sort !== defaultSort;
 
   return (
     <aside
@@ -440,7 +443,7 @@ export function FilterSidebar({
                   key={o.value}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => setParams({ sort: o.value === "featured" ? undefined : o.value })}
+                  onClick={() => setParams({ sort: o.value === defaultSort ? undefined : o.value })}
                   className={`rounded-full px-3.5 py-1.5 text-[12px] font-medium transition-all ${
                     on
                       ? "bg-rose-600 text-white shadow-[0_8px_18px_-10px_rgba(4,43,82,0.5)]"

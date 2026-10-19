@@ -100,4 +100,17 @@ class ContentSettingsTest extends TestCase
         $this->assertSame(4, (int) $row['rating']);
         $this->assertTrue(Testimonial::find($id)->is_active);
     }
+
+    public function test_the_recently_viewed_row_is_on_by_default_and_can_be_switched_off_or_renamed(): void
+    {
+        $this->assertSame('1', (string) $this->published()['home_recent_enabled']);
+        $this->assertSame('Recently Viewed', $this->published()['home_recent_title']);
+
+        $this->putJson('/api/v1/admin/settings', ['home_recent_enabled' => '0', 'home_recent_title' => 'Pick Up Where You Left Off'])->assertOk();
+        Setting::flush();
+        $this->assertSame('0', (string) $this->published()['home_recent_enabled']);
+        $this->assertSame('Pick Up Where You Left Off', $this->published()['home_recent_title']);
+
+        $this->putJson('/api/v1/admin/settings', ['home_recent_enabled' => 'maybe'])->assertStatus(422);
+    }
 }

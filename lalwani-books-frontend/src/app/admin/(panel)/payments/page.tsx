@@ -123,6 +123,7 @@ export default function AdminPayments() {
     <div>
       <IntegrationPanel
         group="payment"
+        disconnect={{ name: "Razorpay", note: "Customers can’t pay online until you connect again — checkout offers only cash on delivery, if it is switched on." }}
         title="Payments"
         blurb="Razorpay keys are stored encrypted and never shown again once saved. Leave a secret blank to keep the current one."
         sectionTitle="Razorpay — online payments"

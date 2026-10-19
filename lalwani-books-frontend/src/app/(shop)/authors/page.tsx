@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/page-meta";
 import Link from "next/link";
 import Image from "@/components/Image";
 import { PageBanner } from "@/components/PageBanner";
@@ -9,10 +10,13 @@ import { api } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
 import type { Author } from "@/lib/types";
 
-export const metadata: Metadata = {
-  title: "Authors",
-  description: "Every author on our shelves, each with all of their books we stock.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
+    title: "Authors",
+    description: "Every author on our shelves at Lalwani Books International, each with all of their books we stock.",
+    path: "/authors",
+  });
+}
 
 export const revalidate = 300;
 
@@ -132,12 +136,25 @@ function Figure({ value, label }: { value: number; label: string }) {
 /** A round portrait, or a tinted monogram when the author has no photo yet. */
 function Face({ author: a, index, sizes, className }: { author: Author; index: number; sizes: string; className: string }) {
   const [from, to] = GENRE_TINTS[index % GENRE_TINTS.length];
+  const tint = { background: `linear-gradient(135deg, ${from}, ${to})` };
   return (
     <span
       className={"flex items-center justify-center overflow-hidden rounded-full text-[0.9em] font-semibold text-white " + className}
-      style={a.photo ? undefined : { background: `linear-gradient(135deg, ${from}, ${to})` }}
+      style={a.photo ? undefined : tint}
     >
-      {a.photo ? <Image src={a.photo} alt="" fill sizes={sizes} className="object-cover" /> : initialsOf(a.name)}
+      {a.photo ? (
+        <Image
+          src={a.photo}
+          alt=""
+          fill
+          fixed
+          sizes={sizes}
+          className="object-cover"
+          fallback={<span className="absolute inset-0 flex items-center justify-center" style={tint}>{initialsOf(a.name)}</span>}
+        />
+      ) : (
+        initialsOf(a.name)
+      )}
     </span>
   );
 }
@@ -229,8 +246,14 @@ function AuthorCard({ author: a, index }: { author: Author; index: number }) {
                 src={a.photo}
                 alt=""
                 fill
+                fixed
                 sizes="96px"
                 className="object-cover transition-transform duration-500 ease-out group-hover:scale-110 group-focus-visible:scale-110"
+                fallback={
+                  <span className="absolute inset-0 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}>
+                    {initialsOf(a.name)}
+                  </span>
+                }
               />
             ) : (
               initialsOf(a.name)

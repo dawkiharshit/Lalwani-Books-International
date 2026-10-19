@@ -2,6 +2,8 @@
 
 import { PageBanner } from "@/components/PageBanner";
 import { AccountDetails } from "@/components/AccountDetails";
+import { ProfilePhoto } from "@/components/ProfilePhoto";
+import { Portrait } from "@/components/Portrait";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -79,10 +81,14 @@ export default function AccountPage() {
     <div className="mx-auto w-full max-w-4xl">
 
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-accent uppercase tracking-[0.25em] text-rose-500">Your Account</p>
-          <h1 className="mt-1 font-serif text-[1.9rem] text-ink">{user.name}</h1>
-          <p className="text-[12.5px] text-fog">{user.email}</p>
+        <div className="flex items-center gap-4">
+          {/* Their own photo, set below under Edit profile. */}
+          <Portrait name={user.name} photo={user.avatar} className="h-14 w-14 text-[1.1rem]" />
+          <div>
+            <p className="text-[11px] font-accent uppercase tracking-[0.25em] text-rose-500">Your Account</p>
+            <h1 className="mt-1 font-serif text-[1.9rem] text-ink">{user.name}</h1>
+            <p className="text-[12.5px] text-fog">{user.email}</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -142,7 +148,9 @@ export default function AccountPage() {
               <h2 id="edit-profile-title" className="text-[1.15rem] font-semibold text-ink">
                 Edit profile
               </h2>
-              <p className="mt-0.5 text-[12.5px] text-fog">Update your name, email and mobile, or change your password.</p>
+              <p className="mt-0.5 text-[12.5px] text-fog">
+                Update your photo, name, email and mobile, or change your password.
+              </p>
             </div>
             <button
               type="button"
@@ -152,7 +160,8 @@ export default function AccountPage() {
               Done
             </button>
           </div>
-          <AccountDetails user={user} className="mt-4" />
+          <ProfilePhoto user={user} className="mt-4" />
+          <AccountDetails user={user} className="mt-5" />
         </section>
       )}
 

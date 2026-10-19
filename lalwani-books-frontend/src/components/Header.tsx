@@ -1,15 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "@/components/Image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { clientApi } from "@/lib/api";
 import { useWishlistCount } from "@/lib/wishlist";
-import { money } from "@/lib/format";
-import type { Category, Paginated, ProductCard } from "@/lib/types";
+import type { Category } from "@/lib/types";
 import {
   BagIcon,
   BookIcon,
@@ -34,11 +31,10 @@ import {
 import { drawerIcon, drawerLink, drawerLinkActive } from "./ui";
 import { Brand } from "./Brand";
 import { startNavigation } from "@/lib/loading-bus";
+import { MIN_QUERY, useSearchSuggest, type SuggestResult } from "@/lib/search";
+import { SearchCombobox, type PopularLink } from "./search/SearchCombobox";
+import { RecentlyViewedDrawer, RecentlyViewedMenu } from "./RecentlyViewedNav";
 
-/** Below this a search matches most of the catalogue, which helps nobody. */
-const MIN_QUERY = 2;
-const SUGGEST_DELAY = 220;
-const SUGGEST_LIMIT = 6;
 
 const NAV = [
   { href: "/", label: "Home", icon: HomeIcon },
@@ -61,30 +57,20 @@ function isActive(pathname: string, href: string) {
 }
 
 /**
- * Rounded grey search field with live suggestions — Bookory's centre-piece.
+ * The header's search field: the shared combobox with grouped suggestions
+ * (books, authors, categories, ISBN) and popular searches while empty.
  *
  * Suggestions are fetched once by the header and handed to every instance
- * (desktop row, phone row, phone menu, search cards), so the fields never
- * duplicate a request.
+ * (desktop row, phone row, search cards), so the fields never duplicate a request.
  */
-function SearchField({
-  value,
-  onChange,
-  onSubmit,
-  onPick,
-  suggestions,
-  searching,
-  className = "",
-  id,
-  autoFocus = false,
-  inline = false,
-}: {
+function SearchField(props: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onPick: () => void;
-  suggestions: ProductCard[];
+  results: SuggestResult | null;
   searching: boolean;
+  popular: PopularLink[];
   className?: string;
   id?: string;
   /** Focus the field as it appears (the pinned bar's search card). */
@@ -92,130 +78,7 @@ function SearchField({
   /** Results open inside the surrounding card instead of floating below it. */
   inline?: boolean;
 }) {
-  const [focused, setFocused] = useState(false);
-  const [active, setActive] = useState(-1);
-  const listId = useId();
-  const router = useRouter();
-
-  const q = value.trim();
-  const show = focused && q.length >= MIN_QUERY;
-  const hasResults = suggestions.length > 0;
-
-  function keyDown(e: React.KeyboardEvent) {
-    if (!show || !hasResults) return;
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setActive((i) => (i + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setActive((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
-    } else if (e.key === "Escape") {
-      setFocused(false);
-      setActive(-1);
-    } else if (e.key === "Enter" && active >= 0) {
-      e.preventDefault();
-      onPick();
-      setFocused(false);
-      startNavigation(`/product/${suggestions[active].slug}`);
-      router.push(`/product/${suggestions[active].slug}`);
-    }
-  }
-
-  return (
-    <form
-      onSubmit={onSubmit}
-      className={`relative ${className}`}
-      role="search"
-      // Searching is a page change (startNavigation in submitSearch), not a save:
-      // the debounced suggestions request must not raise the click-blocking veil.
-      data-no-loader
-      id={id}
-      onFocusCapture={() => setFocused(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-          setFocused(false);
-          setActive(-1);
-        }
-      }}
-    >
-      <div className="flex items-center rounded-full border border-transparent bg-[#f5f5f5] pl-5 pr-1.5 transition-colors focus-within:border-rose-600 focus-within:bg-white">
-        <input
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setActive(-1);
-          }}
-          onKeyDown={keyDown}
-          placeholder="Search by title, author or ISBN…"
-          aria-label="Search books"
-          role="combobox"
-          aria-expanded={show}
-          aria-controls={show ? listId : undefined}
-          aria-autocomplete="list"
-          aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
-          autoFocus={autoFocus}
-          className="h-12 w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-fog lg:h-11"
-        />
-        <button
-          type="submit"
-          aria-label="Search"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-rose-600 hover:text-white lg:h-9 lg:w-9"
-        >
-          <SearchIcon className="h-[17px] w-[17px]" strokeWidth={2} />
-        </button>
-      </div>
-
-      {show && (
-        <div
-          className={`overflow-hidden rounded-xl border border-blush-200 bg-white ${
-            inline ? "mt-3" : "absolute inset-x-0 top-full z-50 mt-2 shadow-lift"
-          }`}
-        >
-          {hasResults ? (
-            <>
-              <ul id={listId} role="listbox" aria-label="Book suggestions" className="max-h-[22rem] overflow-auto p-1.5">
-                {suggestions.map((p, i) => (
-                  <li key={p.id} id={`${listId}-${i}`} role="option" aria-selected={i === active}>
-                    <Link
-                      href={`/product/${p.slug}`}
-                      onClick={() => {
-                        onPick();
-                        setFocused(false);
-                      }}
-                      onMouseEnter={() => setActive(i)}
-                      className={`flex items-center gap-3 rounded-lg p-2 transition-colors ${i === active ? "bg-blush-100" : ""}`}
-                    >
-                      <span
-                        className="relative h-12 w-9 shrink-0 overflow-hidden rounded"
-                        style={{ background: `linear-gradient(135deg, ${p.colors.from}, ${p.colors.to})` }}
-                      >
-                        {p.image && <Image src={p.image} alt="" fill sizes="36px" className="object-cover" />}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-ink">{p.name}</span>
-                        {p.author && <span className="block truncate text-[11.5px] text-fog">{p.author}</span>}
-                      </span>
-                      <span className="shrink-0 text-[13px] font-semibold text-rose-600">{money(p.price)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="submit"
-                className="block w-full border-t border-blush-200 px-4 py-2.5 text-left text-[12px] font-medium text-rose-600 transition-colors hover:bg-blush-50"
-              >
-                See all results for &ldquo;{q}&rdquo; &rarr;
-              </button>
-            </>
-          ) : (
-            <p className="px-4 py-5 text-center text-[12.5px] text-fog">
-              {searching ? "Searching…" : `No books match “${q}”.`}
-            </p>
-          )}
-        </div>
-      )}
-    </form>
-  );
+  return <SearchCombobox {...props} />;
 }
 
 /** The coral "Categories" pill and its drop-down list of every category. */
@@ -316,29 +179,14 @@ export function Header({
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  const [found, setFound] = useState<{ q: string; items: ProductCard[] }>({ q: "", items: [] });
+  const { results: suggestions, searching } = useSearchSuggest(query);
   const trimmed = query.trim();
-  const suggestions = found.q === trimmed ? found.items : [];
-  const searching = trimmed.length >= MIN_QUERY && found.q !== trimmed;
-
-  useEffect(() => {
-    const q = query.trim();
-    if (q.length < MIN_QUERY) return;
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      clientApi<Paginated<ProductCard>>(`/products?search=${encodeURIComponent(q)}&per_page=${SUGGEST_LIMIT}`, {
-        token: null,
-        cartToken: null,
-        signal: controller.signal,
-      })
-        .then((res) => setFound({ q, items: res.data }))
-        .catch(() => {});
-    }, SUGGEST_DELAY);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query]);
+  // Shown in an empty search box: the best-stocked subjects.
+  const popularSearches = [...categories]
+    .filter((c) => c.products_count > 0)
+    .sort((a, b) => b.products_count - a.products_count)
+    .slice(0, 6)
+    .map((c) => ({ label: c.name, href: `/collection?category=${c.slug}` }));
 
   // The drawer belongs to the page it was opened on, so navigating closes it.
   const [openOn, setOpenOn] = useState<string | null>(null);
@@ -528,7 +376,8 @@ export function Header({
           setQuery("");
           closeSearch();
         }}
-        suggestions={suggestions}
+        results={suggestions}
+        popular={[]}
         searching={searching}
         autoFocus
         inline
@@ -553,22 +402,27 @@ export function Header({
     </>
   );
 
-  const navLinks = NAV.map((item) => {
-    const active = isActive(pathname, item.href);
-    return (
-      <li key={item.href}>
-        <Link
-          href={item.href}
-          aria-current={active ? "page" : undefined}
-          className={`relative py-1 transition-colors hover:text-rose-600 after:absolute after:-bottom-0.5 after:left-0 after:h-[2px] after:rounded-full after:bg-rose-600 after:transition-all after:duration-300 ${
-            active ? "text-rose-600 after:w-full" : "after:w-0 hover:after:w-full"
-          }`}
-        >
-          {item.label}
-        </Link>
-      </li>
-    );
-  });
+  // `compact`: the slim pinned bar, which has less room.
+  const navLinks = (compact: boolean) => [
+    ...NAV.map((item) => {
+      const active = isActive(pathname, item.href);
+      return (
+        <li key={item.href}>
+          <Link
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={`relative py-1 transition-colors hover:text-rose-600 after:absolute after:-bottom-0.5 after:left-0 after:h-[2px] after:rounded-full after:bg-rose-600 after:transition-all after:duration-300 ${
+              active ? "text-rose-600 after:w-full" : "after:w-0 hover:after:w-full"
+            }`}
+          >
+            {item.label}
+          </Link>
+        </li>
+      );
+    }),
+    // The books this shopper opened, in a card; its count blinks once there are some.
+    <RecentlyViewedMenu key="recently-viewed" compact={compact} />,
+  ];
 
   return (
     <>
@@ -586,7 +440,8 @@ export function Header({
           <Brand logo={logo} name={siteName} height={50} />
         </Link>
         <nav aria-label="Main (pinned)" className="hidden flex-1 lg:block">
-          <ul className="flex items-center justify-center gap-9 text-[14px] font-semibold text-ink">{navLinks}</ul>
+          {/* Closer together below 1280px wide, so eight items stay on one line beside the icons. */}
+          <ul className="flex items-center justify-center gap-5 whitespace-nowrap text-[14px] font-semibold text-ink xl:gap-9">{navLinks(true)}</ul>
         </nav>
         <div className="ml-auto flex items-center gap-1 lg:ml-0">
           <button
@@ -639,7 +494,8 @@ export function Header({
             onChange={setQuery}
             onSubmit={submitSearch}
             onPick={() => setQuery("")}
-            suggestions={suggestions}
+            results={suggestions}
+        popular={popularSearches}
             searching={searching}
             className="max-w-[560px] flex-1"
           />
@@ -702,7 +558,8 @@ export function Header({
           onChange={setQuery}
           onSubmit={submitSearch}
           onPick={() => setQuery("")}
-          suggestions={suggestions}
+          results={suggestions}
+        popular={popularSearches}
           searching={searching}
         />
       </div>
@@ -710,7 +567,7 @@ export function Header({
       {/* Centred main menu */}
       <nav aria-label="Main" className="hidden border-y border-blush-200 lg:block">
         <ul className="container-shop flex h-[60px] items-center justify-center gap-11 text-[14px] font-semibold text-ink">
-          {navLinks}
+          {navLinks(false)}
         </ul>
       </nav>
 
@@ -741,6 +598,7 @@ export function Header({
                   {item.label}
                 </Link>
               ))}
+              <RecentlyViewedDrawer />
               {/* Categories fold away behind one row so the menu stays short. */}
               {categories.length > 0 && (
                 <div className="mt-1">

@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import { Stars, Spinner } from "@/components/ui";
 import { StarSolid } from "@/components/icons";
+import { Portrait } from "@/components/Portrait";
 
 /** How many reviews show before "Show all" — enough to read the mood, not a wall. */
 const PREVIEW = 3;
@@ -112,26 +113,26 @@ export function ReviewsSection({ slug, className = "" }: { slug: string; classNa
       {formOpen && (
         <form onSubmit={submit} className="mt-6 grid gap-4 rounded-2xl bg-blush-50 p-6 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-cocoa">Your name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} className="input-base" />
+            <label htmlFor="review-name" className="mb-1 block text-[11px] font-medium text-cocoa">Your name</label>
+            <input id="review-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} className="input-base" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-cocoa">Rating</label>
-            <div className="flex items-center gap-1 pt-1.5">
+            <p id="review-rating" className="mb-1 block text-[11px] font-medium text-cocoa">Rating</p>
+            <div role="group" aria-labelledby="review-rating" className="flex items-center gap-1 pt-1.5">
               {[1, 2, 3, 4, 5].map((i) => (
-                <button key={i} type="button" onClick={() => setRating(i)} aria-label={`${i} stars`}>
+                <button key={i} type="button" onClick={() => setRating(i)} aria-label={`${i} stars`} aria-pressed={i === rating}>
                   <StarSolid className={`h-6 w-6 transition-colors ${i <= rating ? "text-gold" : "text-blush-200"}`} />
                 </button>
               ))}
             </div>
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-[11px] font-medium text-cocoa">Title (optional)</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={190} className="input-base" />
+            <label htmlFor="review-title" className="mb-1 block text-[11px] font-medium text-cocoa">Title (optional)</label>
+            <input id="review-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={190} className="input-base" />
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-[11px] font-medium text-cocoa">Review</label>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={2000} className="input-base resize-none" />
+            <label htmlFor="review-body" className="mb-1 block text-[11px] font-medium text-cocoa">Review</label>
+            <textarea id="review-body" value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={2000} className="input-base resize-none" />
           </div>
           {error && <p className="text-[12px] text-red-500 sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">
@@ -151,15 +152,14 @@ export function ReviewsSection({ slug, className = "" }: { slug: string; classNa
           <ul className="divide-y divide-blush-200">
             {visible.map((r) => (
               <li key={r.id} className="flex gap-4 py-5 first:pt-0">
-                <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-100 text-[15px] font-semibold text-rose-700">
-                  {(r.name.trim()[0] ?? "?").toUpperCase()}
-                </span>
+                {/* Their profile picture (My account), or their initials. */}
+                <Portrait name={r.name} photo={r.photo} className="h-11 w-11" />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="text-[14px] font-semibold text-ink">{r.name}</span>
                     <span className="text-[12px] text-fog">{formatDate(r.created_at)}</span>
                   </div>
-                  <Stars rating={r.rating} className="mt-1.5 h-3.5 w-3.5" />
+                  <Stars rating={r.rating} size="md" className="mt-1.5" />
                   {r.title && <p className="mt-2 text-[14px] font-semibold text-ink">{r.title}</p>}
                   <p className="mt-1 text-[13.5px] leading-relaxed text-cocoa">{r.body}</p>
                 </div>

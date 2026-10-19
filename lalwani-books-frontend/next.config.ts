@@ -13,8 +13,16 @@ const nextConfig: NextConfig = {
   // server cache is dropped at once (see /revalidate), yet a shopper tab that
   // had the page cached kept showing the old copy until a hard reload. Thirty
   // seconds keeps clicks instant while an edit shows on the next visit.
+  //
+  // isrFlushToDisk: pages and API reads rendered after the build are cached in
+  // memory only (a fixed 50 MB, least-used dropped first), not also written to
+  // disk. On disk every address ever asked for stayed for good — about 400 kB
+  // for each made-up /product/… link, and an entry for each new ?search= —
+  // so a script requesting random addresses could fill the server's disk.
+  // Pages built by `next build` are still read from disk as before.
   experimental: {
     staleTimes: { static: 30 },
+    isrFlushToDisk: false,
   },
   // Dev only: allow the dev server (HMR, RSC, chunks) to be reached from these
   // hosts. Next 16 blocks cross-origin dev requests by default, so opening the
@@ -32,6 +40,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+      // YouTube's preview pictures for a book's video (the gallery's video
+      // thumb), fetched by this server so visitors' browsers don't call YouTube.
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
     ],
     // Trimmed from the defaults (8 device + 8 image widths). Every next/image
     // writes one srcset entry per width into the HTML, and a proxied Unsplash
@@ -92,10 +103,11 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           // Send the origin, never the full path, to other sites.
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          // Nothing here needs these, so no embedded frame gets them either.
+          // The microphone for the shop's own "Ask by voice" button only — never
+          // for an embedded frame; nothing here needs the rest.
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+            value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()",
           },
           { key: "Content-Security-Policy", value: csp },
           /*

@@ -158,6 +158,12 @@ export const WhatsAppIcon = ({ className, strokeWidth }: IconProps) => (
     <path d="M8.9 8.2c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6a6 6 0 0 0 2.7 2.3c.3.1.4 0 .6-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.2.1.4.2.4.4a2 2 0 0 1-1.4 1.6c-.5.1-1.2.2-3.4-.8a8 8 0 0 1-3.3-3.5c-.6-1.2-.5-2.1-.3-2.6l.4-.6Z" />
   </svg>
 );
+export const MicIcon = ({ className, strokeWidth }: IconProps) => (
+  <svg {...base(className, strokeWidth)}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+  </svg>
+);
 
 /** Decorative bottle outline — for section backdrops. */
 export const BottleMark = ({ className, strokeWidth }: IconProps) => (

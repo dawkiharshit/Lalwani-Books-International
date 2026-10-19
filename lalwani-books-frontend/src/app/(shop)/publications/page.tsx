@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/page-meta";
 import Link from "next/link";
 import Image from "@/components/Image";
 import { PageBanner } from "@/components/PageBanner";
@@ -9,10 +10,13 @@ import { api } from "@/lib/api";
 import { initialsOf } from "@/lib/format";
 import type { Publisher, PublisherBook } from "@/lib/types";
 
-export const metadata: Metadata = {
-  title: "Publications",
-  description: "Every publisher on our shelves, each with all of their books we stock.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
+    title: "Publications",
+    description: "Every publisher on our shelves at Lalwani Books International, each with all of their books we stock.",
+    path: "/publications",
+  });
+}
 
 export const revalidate = 300;
 
@@ -258,7 +262,7 @@ function Seal({ publisher: p, tone }: { publisher: Publisher; tone: Tone }) {
   if (p.logo) {
     return (
       <span aria-hidden className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-blush-200">
-        <Image src={p.logo} alt="" fill sizes="44px" className="object-contain p-1.5" />
+        <Image src={p.logo} alt="" fill fixed sizes="44px" className="object-contain p-1.5" />
       </span>
     );
   }

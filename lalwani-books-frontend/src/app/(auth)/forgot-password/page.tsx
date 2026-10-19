@@ -52,8 +52,9 @@ export default function ForgotPasswordPage() {
           <p className="mt-5 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{error}</p>
         )}
 
-        <label className="mt-6 block text-[11px] font-medium text-cocoa">Email</label>
+        <label htmlFor="forgot-email" className="mt-6 block text-[11px] font-medium text-cocoa">Email</label>
         <input
+          id="forgot-email"
           type="email"
           required
           autoFocus

@@ -251,5 +251,8 @@ class Razorpay
             'paid_at' => now(),
             'status' => $order->status === 'pending' ? 'processing' : $order->status,
         ])->save();
+
+        // The WhatsApp order confirmation, held back at checkout until now.
+        AiGrowBot::notify('order.placed', AiGrowBot::orderData($order));
     }
 }

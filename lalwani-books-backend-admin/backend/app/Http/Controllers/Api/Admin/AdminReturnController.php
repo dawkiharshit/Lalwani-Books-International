@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ReturnRequest;
 use App\Services\Razorpay;
 use App\Services\Shiprocket;
+use App\Support\ReturnPickupProblems;
 use Illuminate\Http\Request;
 use RuntimeException;
 
@@ -27,7 +28,7 @@ class AdminReturnController extends Controller
             ->map(fn ($s, $i) => "WHEN status = ? THEN {$i}")
             ->implode(' ').' ELSE '.count(self::STATUS_ORDER).' END';
 
-        $rows = ReturnRequest::with('order')
+        $rows = ReturnRequest::with('order.items')
             ->orderByRaw($case, self::STATUS_ORDER)
             ->latest()
             ->limit(200)
@@ -41,6 +42,10 @@ class AdminReturnController extends Controller
                 'order_total' => $r->order?->total,
                 'payment_method' => $r->order?->payment_method,
                 'payment_status' => $r->order?->payment_status,
+                // The amount the Approve box starts from, for a refund awaiting a decision.
+                'suggested_refund' => $r->type === 'refund' && $r->status === 'requested' ? $r->suggestedRefund() : null,
+                // Why the courier pickup is not booked — admin only, never in the customer's view.
+                'pickup_problem' => $r->pickupProblem(),
             ]));
 
         return response()->json(['data' => $rows]);
@@ -53,50 +58,63 @@ class AdminReturnController extends Controller
             return response()->json(['message' => 'This return is not pending.'], 422);
         }
 
+        // The refund the customer is told about in the approval email. The
+        // admin can still change it when completing the refund.
+        $data = $request->validate([
+            'refund_amount' => ['nullable', 'numeric', 'min:1', 'max:'.(float) $orderReturn->order?->total],
+            'admin_note' => ['nullable', 'string', 'max:500'],
+        ]);
+
         $orderReturn->status = 'approved';
-        $orderReturn->admin_note = $request->input('admin_note');
+        $orderReturn->admin_note = $data['admin_note'] ?? null;
+        if ($orderReturn->type === 'refund') {
+            $orderReturn->refund_amount = round(isset($data['refund_amount'])
+                ? (float) $data['refund_amount']
+                : $orderReturn->suggestedRefund(), 2) ?: null;
+        }
 
         // Best-effort: approval stands even if the pickup can't be booked yet
-        // (e.g. the shop return address isn't filled in). The admin sees why.
+        // (e.g. the shop return address isn't filled in). The admin sees why —
+        // kept apart from the note, which the customer reads on their order page.
+        $problem = null;
         if (Shiprocket::enabled()) {
             try {
                 $res = Shiprocket::createReturnOrder($orderReturn->order, $orderReturn->items ?? []);
                 $orderReturn->sr_return_order_id = $res['order_id'] ?? null;
                 $orderReturn->sr_return_shipment_id = $res['shipment_id'] ?? null;
             } catch (RuntimeException $e) {
-                $orderReturn->admin_note = trim(
-                    ($orderReturn->admin_note ? $orderReturn->admin_note.' — ' : '')
-                    .'Pickup not auto-booked: '.$e->getMessage()
-                );
+                $problem = $e->getMessage();
             }
         }
 
         $orderReturn->save();
+        ReturnPickupProblems::set($orderReturn->id, $problem);
 
-        // Let the customer know. Best effort: the approval is already saved,
-        // and a mail outage must not turn it into an error for the admin.
+        // Let the customer know — once the admin has their answer, as the email
+        // takes seconds. The approval is already saved; a failure is listed on
+        // admin → Email (SMTP).
         $orderReturn->load('order');
-        $to = $orderReturn->order?->email;
-        $mailed = false;
-        if ($to) {
-            try {
-                \Illuminate\Support\Facades\Mail::to($to)
-                    ->send(new \App\Mail\ReturnApproved($orderReturn, $request->input('admin_note')));
-                $mailed = true;
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Return approval email failed', [
-                    'return' => $orderReturn->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+        $to = (string) $orderReturn->order?->email;
+        if ($to !== '') {
+            \App\Support\MailLater::send($to, new \App\Mail\ReturnApproved($orderReturn, $data['admin_note'] ?? null), 'Return approval', [
+                'return' => $orderReturn->id,
+            ]);
         }
 
         return response()->json([
-            'data' => $orderReturn->fresh('order')->toPayload(),
-            'message' => $mailed
-                ? 'Return approved. The customer has been emailed.'
-                : 'Return approved. The customer could not be emailed.',
+            'data' => $this->adminPayload($orderReturn),
+            'message' => $to !== ''
+                ? 'Return approved. The customer is being emailed.'
+                : 'Return approved. The order has no email address, so the customer was not emailed.',
         ]);
+    }
+
+    /** What admin → Returns shows: the customer's view plus what only the admin may see. */
+    private function adminPayload(ReturnRequest $orderReturn): array
+    {
+        $fresh = $orderReturn->fresh('order');
+
+        return $fresh->toPayload() + ['pickup_problem' => $fresh->pickupProblem()];
     }
 
     /** Retry the Shiprocket reverse pickup for an approved return (e.g. after
@@ -115,18 +133,21 @@ class AdminReturnController extends Controller
         try {
             $res = Shiprocket::createReturnOrder($orderReturn->order, $orderReturn->items ?? []);
         } catch (RuntimeException $e) {
+            ReturnPickupProblems::set($orderReturn->id, $e->getMessage());
+
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
         $orderReturn->sr_return_order_id = $res['order_id'] ?? null;
         $orderReturn->sr_return_shipment_id = $res['shipment_id'] ?? null;
-        // The green "pickup booked" line conveys this now — clear the stale
-        // "not auto-booked" warning rather than replacing it with a duplicate.
-        $orderReturn->admin_note = null;
+        // The green "pickup booked" line says it all now. Drop the old warning —
+        // including one an older note still carries — and keep the admin's words.
+        $orderReturn->admin_note = $orderReturn->customerNote();
         $orderReturn->save();
+        ReturnPickupProblems::set($orderReturn->id, null);
 
         return response()->json([
-            'data' => $orderReturn->fresh('order')->toPayload(),
+            'data' => $this->adminPayload($orderReturn),
             'message' => 'Reverse pickup booked with Shiprocket.',
         ]);
     }
@@ -142,7 +163,7 @@ class AdminReturnController extends Controller
         ]);
 
         return response()->json([
-            'data' => $orderReturn->fresh('order')->toPayload(),
+            'data' => $this->adminPayload($orderReturn),
             'message' => 'Return rejected.',
         ]);
     }
@@ -163,7 +184,10 @@ class AdminReturnController extends Controller
         ]);
 
         if ($orderReturn->type === 'refund') {
-            $amount = isset($data['refund_amount']) ? (float) $data['refund_amount'] : (float) $order->total;
+            // Left blank: the amount the customer was told when it was approved.
+            $amount = isset($data['refund_amount'])
+                ? (float) $data['refund_amount']
+                : (float) ($orderReturn->refund_amount ?: $order->total);
 
             if ($order->payment_status === 'paid' && $order->razorpay_payment_id && Razorpay::enabled()) {
                 try {
@@ -188,32 +212,25 @@ class AdminReturnController extends Controller
 
         if ($orderReturn->type !== 'refund') {
             return response()->json([
-                'data' => $orderReturn->fresh('order')->toPayload(),
+                'data' => $this->adminPayload($orderReturn),
                 'message' => 'Replacement marked done.',
             ]);
         }
 
-        // Tell the customer the money has gone out. Best effort, as with the
-        // approval email: the refund is already made and recorded.
-        $mailed = false;
-        if ($order->email) {
-            try {
-                \Illuminate\Support\Facades\Mail::to($order->email)
-                    ->send(new \App\Mail\RefundProcessed($orderReturn->load('order')));
-                $mailed = true;
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Refund email failed', [
-                    'return' => $orderReturn->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+        // Tell the customer the money has gone out — after the admin has their
+        // answer, as with the approval email. The refund is already recorded.
+        $to = (string) $order->email;
+        if ($to !== '') {
+            \App\Support\MailLater::send($to, new \App\Mail\RefundProcessed($orderReturn->load('order')), 'Refund', [
+                'return' => $orderReturn->id,
+            ]);
         }
 
         return response()->json([
-            'data' => $orderReturn->fresh('order')->toPayload(),
-            'message' => $mailed
-                ? 'Return completed and refunded. The customer has been emailed.'
-                : 'Return completed and refunded. The customer could not be emailed.',
+            'data' => $this->adminPayload($orderReturn),
+            'message' => $to !== ''
+                ? 'Return completed and refunded. The customer is being emailed.'
+                : 'Return completed and refunded. The order has no email address, so the customer was not emailed.',
         ]);
     }
 }

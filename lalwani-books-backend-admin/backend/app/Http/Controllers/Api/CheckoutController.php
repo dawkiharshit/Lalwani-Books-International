@@ -193,26 +193,29 @@ class CheckoutController extends Controller
             ]);
         }
 
-        // Confirmation to the customer plus a copy to the shop. Wrapped so a
-        // mail outage can never fail an order that is already in the database.
-        try {
-            \Illuminate\Support\Facades\Mail::to($order->email)
-                ->send(new \App\Mail\OrderPlaced($order));
+        // Confirmation to the customer plus a copy to the shop — sent once the
+        // shopper has their answer (each email takes seconds over Gmail), and
+        // a mail outage never fails an order that is already in the database.
+        $order->loadMissing('items');
+        \App\Support\MailLater::send($order->email, new \App\Mail\OrderPlaced($order), 'Order confirmation', ['order' => $order->order_number]);
 
-            if ($shopEmail = \App\Models\Setting::get('support_email', '')) {
-                \Illuminate\Support\Facades\Mail::to($shopEmail)
-                    ->send(new \App\Mail\OrderPlaced($order, forAdmin: true));
-            }
-        } catch (Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Order email failed', [
-                'order' => $order->order_number,
-                'error' => $e->getMessage(),
-            ]);
+        if ($shopEmail = (string) \App\Models\Setting::get('support_email', '')) {
+            \App\Support\MailLater::send($shopEmail, new \App\Mail\OrderPlaced($order, forAdmin: true), 'Shop order copy', ['order' => $order->order_number]);
+        }
+
+        $requiresPayment = $data['payment_method'] === 'razorpay' && \App\Services\Razorpay::enabled();
+
+        // WhatsApp confirmation through AiGrowBot, when connected (admin →
+        // WhatsApp). Sent after the response; a failure is only logged. An
+        // online order is confirmed once its payment goes through instead
+        // (Razorpay::markPaid), so a shopper who gives up at the payment step
+        // is not told their order is on its way.
+        if (! $requiresPayment) {
+            \App\Services\AiGrowBot::notify('order.placed', \App\Services\AiGrowBot::orderData($order));
         }
 
         $payload = $order->fresh('items.product.category')->toDetail();
-        $payload['requires_payment'] = $data['payment_method'] === 'razorpay'
-            && \App\Services\Razorpay::enabled();
+        $payload['requires_payment'] = $requiresPayment;
 
         return response()->json(['data' => $payload], 201);
     }

@@ -9,21 +9,36 @@ import type { ContentRow } from "./connected";
 /** Seconds per circle, so the loop runs at the same pace however many there are. */
 const SECONDS_PER_ITEM = 4;
 
+/** In place of a photo (none set, or its file missing): the author's initials, else a book. */
+function Drawn({ r }: { r: ContentRow }) {
+  return r.initials ? (
+    <span
+      className="absolute inset-0 flex items-center justify-center text-[1.5rem] font-semibold text-white transition-transform duration-500 group-hover:scale-110"
+      style={{ background: `linear-gradient(135deg, ${r.tint?.[0] ?? "#0d4377"}, ${r.tint?.[1] ?? "#042b52"})` }}
+    >
+      {r.initials}
+    </span>
+  ) : (
+    <BookOpenIcon className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 text-rose-400" />
+  );
+}
+
 function Circle({ r, tabbable = true }: { r: ContentRow; tabbable?: boolean }) {
   const inner = (
     <>
       <span className="relative block h-24 w-24 overflow-hidden rounded-full bg-blush-100 ring-2 ring-transparent ring-offset-4 transition-all duration-300 group-hover:ring-rose-600 sm:h-28 sm:w-28">
         {r.image ? (
-          <Image src={r.image} alt="" fill sizes="112px" className="object-cover transition-transform duration-500 group-hover:scale-110" />
-        ) : r.initials ? (
-          <span
-            className="absolute inset-0 flex items-center justify-center text-[1.5rem] font-semibold text-white transition-transform duration-500 group-hover:scale-110"
-            style={{ background: `linear-gradient(135deg, ${r.tint?.[0] ?? "#0d4377"}, ${r.tint?.[1] ?? "#042b52"})` }}
-          >
-            {r.initials}
-          </span>
+          <Image
+            src={r.image}
+            alt=""
+            fill
+            fixed
+            sizes="112px"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            fallback={<Drawn r={r} />}
+          />
         ) : (
-          <BookOpenIcon className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 text-rose-400" />
+          <Drawn r={r} />
         )}
       </span>
       {r.title && (

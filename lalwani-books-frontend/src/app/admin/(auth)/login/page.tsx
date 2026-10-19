@@ -30,7 +30,8 @@ function LoginForm() {
     setError("");
     try {
       const user = await login(email, password);
-      if (!user.is_admin) {
+      // The owner, or a staff member the owner added in admin → Staff.
+      if (!user.is_admin && !user.staff) {
         // A customer account must not stay signed in to the panel.
         await logout();
         setError("This account does not have admin access.");

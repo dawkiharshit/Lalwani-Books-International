@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import type { Paginated, ProductCard as ProductCardType, ProductDetail } from "@/lib/types";
 import { money } from "@/lib/format";
 import { DrawnCover } from "@/components/ProductImage";
@@ -10,15 +10,17 @@ import { BookRail } from "@/components/home/bookory-client";
 import { AddToCartPanel } from "@/components/AddToCart";
 import { PaymentMethods } from "@/components/PaymentMethods";
 import type { EnabledMethods } from "@/components/payment-ticker";
-import { ProductVideoButton } from "@/components/ProductVideoButton";
 import { Stars } from "@/components/ui";
 import { DeliveryPromise } from "@/components/DeliveryPromise";
 import { getSettings } from "@/lib/settings";
+import { siteShare } from "@/lib/page-meta";
 import { absoluteUrl, plainSnippet } from "@/lib/seo";
 import { JsonLd } from "@/components/JsonLd";
 import { ReviewsSection } from "./reviews";
 import { ProductGallery } from "./gallery";
 import { ProductDetails } from "./details";
+import { CopyButton } from "@/components/CopyButton";
+import { RememberViewed } from "@/components/RememberViewed";
 
 export const revalidate = 60;
 
@@ -37,40 +39,65 @@ export async function generateStaticParams() {
   }
 }
 
+/**
+ * The book, or a 404 when the shop has no such book. Any other failure (the
+ * API down or slow) is thrown instead: a page cached earlier then keeps being
+ * served, where answering "not found" would have replaced it, and a search
+ * engine passing by would have dropped the book.
+ */
+async function getProduct(slug: string): Promise<ProductDetail> {
+  try {
+    return (await api<{ data: ProductDetail }>(`/products/${encodeURIComponent(slug)}`, { revalidate: 60 })).data;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) notFound();
+    throw e;
+  }
+}
+
+/**
+ * Search results show about 60–70 characters of a title. "Name by Author |
+ * Shop" when that fits; else "Name by Author" without the shop's name; else
+ * the name alone — so the words that matter are never the ones cut off.
+ */
+function bookTitle(name: string, author: string | null, site: string): Metadata["title"] {
+  const full = author ? `${name} by ${author}` : name;
+  if (`${full} | ${site}`.length <= 70) return full;
+  if (full.length <= 70) return { absolute: full };
+  return `${name} | ${site}`.length <= 70 ? name : { absolute: name };
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  try {
-    const res = await api<{ data: ProductDetail }>(`/products/${slug}`, { revalidate: 60 });
-    const p = res.data;
-    const title = p.author ? `${p.name} by ${p.author}` : p.name;
-    const description =
-      plainSnippet(`${p.author ? `${p.name} by ${p.author}. ` : ""}${p.description ?? ""}`) ||
-      `Buy ${p.name} online — genuine edition, delivered across India.`;
-    const url = `/product/${p.slug}`;
-    const images = p.image ? [p.image] : undefined;
-    return {
-      title,
+  const p = await getProduct(slug);
+  const share = siteShare(await getSettings());
+  const heading = p.author ? `${p.name} by ${p.author}` : p.name;
+  const description =
+    plainSnippet(`${p.author ? `${heading}. ` : ""}${p.description ?? ""}`) ||
+    `Buy ${p.name} online — genuine edition, delivered across India.`;
+  const url = `/product/${p.slug}`;
+  const images = p.image ? [p.image] : share.images;
+  return {
+    title: bookTitle(p.name, p.author, share.name),
+    description,
+    // One address per book, whatever query string a link added.
+    alternates: { canonical: url },
+    openGraph: {
+      type: "book",
+      title: heading,
       description,
-      // One address per book, whatever query string a link added.
-      alternates: { canonical: url },
-      openGraph: {
-        type: "book",
-        title,
-        description,
-        url,
-        images,
-        ...(p.author ? { authors: [p.author] } : {}),
-        ...(p.book?.isbn ? { isbn: p.book.isbn } : {}),
-      },
-      twitter: { card: images ? "summary_large_image" : "summary", title, description, images },
-    };
-  } catch {
-    return { title: "Book" };
-  }
+      url,
+      siteName: share.name,
+      locale: "en_IN",
+      images,
+      ...(p.author ? { authors: [p.author] } : {}),
+      ...(p.book?.isbn ? { isbn: p.book.isbn } : {}),
+    },
+    twitter: { card: p.image ? "summary_large_image" : share.card, title: heading, description, images },
+  };
 }
 
 /**
@@ -126,18 +153,10 @@ function productJsonLd(p: ProductDetail, storeName: string) {
 export default async function ProductPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
 
-  let product: ProductDetail;
-  let related: ProductCardType[] = [];
-
-  try {
-    const res = await api<{ data: ProductDetail }>(`/products/${slug}`, { revalidate: 60 });
-    product = res.data;
-    related = await api<{ data: ProductCardType[] }>(`/products/${slug}/related`, {
-      revalidate: 120,
-    }).then((r) => r.data).catch(() => []);
-  } catch {
-    notFound();
-  }
+  const product = await getProduct(slug);
+  const related = await api<{ data: ProductCardType[] }>(`/products/${encodeURIComponent(slug)}/related`, {
+    revalidate: 120,
+  }).then((r) => r.data).catch((): ProductCardType[] => []);
 
   // Only promise methods the shop can actually take — with the gateway off,
   // cash on delivery is the only one.
@@ -206,6 +225,8 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
   return (
     <>
       <JsonLd data={productJsonLd(product, settings.site_name || "Lalwani Books International")} />
+      {/* First in the home page's "Recently Viewed" row, in this browser. */}
+      <RememberViewed id={product.id} />
       <PageBanner
         as="p"
         title={product.category?.name ?? "Shop"}
@@ -219,13 +240,20 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
       <div className="grid items-start gap-8 lg:grid-cols-2">
         {/* Cover */}
         <section className="card relative min-w-0 p-6 sm:p-10 lg:sticky lg:top-4">
-          {product.image ? (
-            <ProductGallery name={product.name} image={product.image} gallery={product.gallery ?? []} video={product.video} />
+          {product.image || product.video ? (
+            // The video plays in the picture's place (no pop-up); a book with
+            // no photo shows its drawn cover there instead.
+            <ProductGallery
+              name={product.name}
+              image={product.image}
+              gallery={product.gallery ?? []}
+              video={product.video}
+              cover={<DrawnCover product={product} />}
+            />
           ) : (
             <div className="relative mx-auto w-full max-w-[380px] overflow-hidden rounded-xl shadow-[0_30px_60px_-28px_rgba(0,0,0,0.45)]">
               <div className="pb-[140%]" />
               <DrawnCover product={product} />
-              <ProductVideoButton video={product.video} />
             </div>
           )}
         </section>
@@ -251,8 +279,14 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
                 </Link>
               </span>
             )}
+            {book?.isbn && (
+              <span className="flex items-center gap-1.5">
+                ISBN: <span className="font-medium tabular-nums text-ink">{book.isbn}</span>
+                <CopyButton text={book.isbn} label="Copy ISBN" />
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
-              <Stars rating={product.rating_avg} className="h-3.5 w-3.5" />
+              <Stars rating={product.rating_avg} size="md" />
               <span className="text-ink">{product.rating_count}</span>
             </span>
             {product.sku && (

@@ -18,12 +18,14 @@ export function CollectionToolbar({
   publishers,
   priceFloor,
   priceCeil,
+  defaultSort,
 }: {
   categories: Category[];
   authors: FilterOption[];
   publishers: FilterOption[];
   priceFloor: number;
   priceCeil: number;
+  defaultSort?: string;
 }) {
   const params = useSearchParams();
   const [open, setOpen] = useState(false);
@@ -92,6 +94,7 @@ export function CollectionToolbar({
                 publishers={publishers}
                 priceFloor={priceFloor}
                 priceCeil={priceCeil}
+                defaultSort={defaultSort}
                 onApply={close}
                 onClose={close}
               />

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Author;
 use App\Models\Publisher;
 use App\Models\Product;
+use App\Support\GiftIdeas;
+use App\Support\YouTube;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -27,6 +29,7 @@ class AdminProductController extends Controller
         }
 
         $page = $query->paginate(20);
+        $giftIds = GiftIdeas::ids();
 
         return response()->json([
             'data' => collect($page->items())->map(fn (Product $p) => array_merge($p->toDetail(), [
@@ -34,6 +37,7 @@ class AdminProductController extends Controller
                 // The real FK — the admin UI must never re-derive this from
                 // the category name, which breaks as soon as one is renamed.
                 'category_id' => $p->category_id,
+                'is_gift_idea' => in_array($p->id, $giftIds, true),
                 'created_at' => $p->created_at->toIso8601String(),
             ]))->values(),
             'meta' => [
@@ -51,6 +55,7 @@ class AdminProductController extends Controller
             'data' => array_merge($product->load(['category', 'images'])->toDetail(), [
                 'is_active' => $product->is_active,
                 'category_id' => $product->category_id,
+                'is_gift_idea' => GiftIdeas::has($product->id),
                 'created_at' => $product->created_at->toIso8601String(),
             ]),
         ]);
@@ -59,6 +64,7 @@ class AdminProductController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateProduct($request);
+        $gift = $this->pullGiftIdea($data);
         // A blank slug is derived from the name, so the unique rule above never
         // saw it — check the derived value before the DB constraint does.
         $data['slug'] = ($data['slug'] ?? '') ?: $this->uniqueSlug($data['name']);
@@ -68,6 +74,9 @@ class AdminProductController extends Controller
         $data = $this->linkPublisher($data, $request);
 
         $product = Product::create($data);
+        if ($gift !== null) {
+            GiftIdeas::mark($product->id, $gift);
+        }
 
         return response()->json(['data' => $product->fresh('category')->toDetail()], 201);
     }
@@ -75,6 +84,7 @@ class AdminProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $data = $this->validateProduct($request, $product->id);
+        $gift = $this->pullGiftIdea($data);
 
         // Blanking the SKU field means "leave it alone", never "wipe it" —
         // stock codes are referenced outside this app.
@@ -93,8 +103,27 @@ class AdminProductController extends Controller
         $data = $this->linkPublisher($data, $request);
 
         $product->update($data);
+        if ($gift !== null) {
+            GiftIdeas::mark($product->id, $gift);
+        }
 
         return response()->json(['data' => $product->fresh('category')->toDetail()]);
+    }
+
+    /**
+     * "Gift idea" is not a column but a place on the Gift Ideas list (see
+     * GiftIdeas), so it comes out of the book's fields here. Null when the
+     * form did not send it: the book's place on the list is then left alone.
+     */
+    private function pullGiftIdea(array &$data): ?bool
+    {
+        if (! array_key_exists('is_gift_idea', $data)) {
+            return null;
+        }
+        $gift = (bool) $data['is_gift_idea'];
+        unset($data['is_gift_idea']);
+
+        return $gift;
     }
 
     public function destroy(Product $product)
@@ -230,11 +259,17 @@ class AdminProductController extends Controller
             'is_new_arrival' => ['boolean'],
             'is_category_pick' => ['boolean'],
             'is_bestseller' => ['boolean'],
+            'is_gift_idea' => ['sometimes', 'boolean'],
             'is_active' => ['boolean'],
             'image' => ['nullable', 'string', 'max:255'],
-            // A YouTube (or other) video link. The uploaded .mp4 is handled
-            // separately via the media endpoints.
-            'video_url' => ['nullable', 'url', 'max:255'],
+            // A YouTube video link, in any of its shapes; anything else would
+            // save fine and then never play, so it is refused with a reason.
+            // The uploaded .mp4 is handled separately via the media endpoints.
+            'video_url' => ['nullable', 'url', 'max:255', function (string $attribute, mixed $value, \Closure $fail) {
+                if ($value && ! YouTube::id((string) $value)) {
+                    $fail('Paste a YouTube video link, like https://www.youtube.com/watch?v=… or https://youtu.be/… — or upload an .mp4 below the photos.');
+                }
+            }],
             'color_from' => ['required', 'string', 'max:10'],
             'color_to' => ['required', 'string', 'max:10'],
             'accent' => ['required', 'string', 'max:10'],

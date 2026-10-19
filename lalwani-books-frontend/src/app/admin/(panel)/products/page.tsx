@@ -104,7 +104,15 @@ export default function AdminProducts() {
                       <ProductThumb product={row} className="h-11 w-11 shrink-0 rounded-lg" />
                       <span>
                         <span className="block font-medium text-ink">{row.name}</span>
-                        <span className="text-[10.5px] text-fog">{row.sku}</span>
+                        <span className="text-[10.5px] text-fog">
+                          {row.sku} ·{" "}
+                          {row.book?.isbn ? (
+                            <>ISBN {row.book.isbn}</>
+                          ) : (
+                            // Readers search and note books by ISBN: flag the ones still without one.
+                            <span className="font-semibold text-amber-600">No ISBN</span>
+                          )}
+                        </span>
                       </span>
                     </span>
                   </td>

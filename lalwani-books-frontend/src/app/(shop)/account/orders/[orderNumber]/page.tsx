@@ -73,7 +73,10 @@ export default function AccountOrderPage({
       {/* Where the parcel is — drawn only once a courier has been booked. */}
       {order?.shipment && (
         <section className="card p-6" aria-label="Shipment">
-          <p className="text-[11px] font-accent uppercase tracking-[0.18em] text-fog">On its way</p>
+          {/* A courier booked by hand leaves the order "processing" until it ships. */}
+          <p className="text-[11px] font-accent uppercase tracking-[0.18em] text-fog">
+            {order.status === "processing" ? "Courier booked" : order.status === "delivered" ? "Delivered" : "On its way"}
+          </p>
 
           <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             {order.shipment.courier_name && (

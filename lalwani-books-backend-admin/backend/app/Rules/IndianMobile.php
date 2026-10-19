@@ -13,9 +13,13 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 class IndianMobile implements ValidationRule
 {
-    public function validate(string $attribute, mixed $value, Closure $fail): void
+    /** @param string $message What to say when it is not one — the courier's wording unless a screen needs its own. */
+    public function __construct(private string $message = 'Enter a 10-digit mobile number the courier can call.') {}
+
+    /** "+91 98765-43210" → "9876543210"; null when it is not a mobile number. */
+    public static function digits(mixed $value): ?string
     {
-        $digits = preg_replace('/\D/', '', (string) $value);
+        $digits = preg_replace('/\D/', '', is_scalar($value) ? (string) $value : '');
 
         // Callers write the same number with or without a country or trunk
         // prefix; both mean the same ten digits.
@@ -25,8 +29,13 @@ class IndianMobile implements ValidationRule
             $digits = substr($digits, 1);
         }
 
-        if (! preg_match('/^[6-9]\d{9}$/', $digits)) {
-            $fail('Enter a 10-digit mobile number the courier can call.');
+        return preg_match('/^[6-9]\d{9}$/', $digits) ? $digits : null;
+    }
+
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        if (self::digits($value) === null) {
+            $fail($this->message);
         }
     }
 }

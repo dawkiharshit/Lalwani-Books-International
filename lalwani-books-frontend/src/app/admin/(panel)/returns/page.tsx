@@ -28,7 +28,10 @@ interface ReturnRow {
   items: { name: string; quantity: number }[];
   photos: string[];
   status: "requested" | "approved" | "rejected" | "completed";
+  /** Your note — the customer sees it on their order page. */
   admin_note: string | null;
+  /** Why the courier pickup could not be booked — admin only; the customer never sees it. */
+  pickup_problem: string | null;
   pickup_booked: boolean;
   tracking_url: string | null;
   refund_amount: number | null;
@@ -40,6 +43,8 @@ interface ReturnRow {
   order_total: number | null;
   payment_method: string | null;
   payment_status: string | null;
+  /** Where the Approve box starts for a pending refund: the whole total, or the returned books' share. */
+  suggested_refund: number | null;
 }
 
 const STATUS: Record<ReturnRow["status"], { label: string; cls: string }> = {
@@ -60,6 +65,7 @@ export default function AdminReturns() {
   // this is money and customer-facing, it deserves a proper form, not a raw
   // browser prompt().
   const [dialog, setDialog] = useState<
+    | { kind: "approve"; row: ReturnRow; amount: string; err: string }
     | { kind: "complete"; row: ReturnRow; amount: string; err: string }
     | { kind: "reject"; row: ReturnRow; note: string }
     | null
@@ -139,6 +145,21 @@ export default function AdminReturns() {
     const showInDialog = (message: string) =>
       setDialog((d) => (d?.kind === "complete" && d.row.id === row.id ? { ...d, err: message } : d));
     if (await act(row.id, "complete", body, showInDialog)) setDialog(null);
+  }
+
+  /** Confirm the approve dialog: the refund amount goes in the customer's email. */
+  async function submitApprove() {
+    if (dialog?.kind !== "approve") return;
+    const { row, amount } = dialog;
+    const max = row.order_total ?? 0;
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt < 1 || amt > max) {
+      setDialog({ ...dialog, err: `Enter an amount between ₹1 and ₹${max.toLocaleString("en-IN")}.` });
+      return;
+    }
+    const showInDialog = (message: string) =>
+      setDialog((d) => (d?.kind === "approve" && d.row.id === row.id ? { ...d, err: message } : d));
+    if (await act(row.id, "approve", { refund_amount: amt }, showInDialog)) setDialog(null);
   }
 
   /** Confirm the reject dialog. */
@@ -260,8 +281,18 @@ export default function AdminReturns() {
                 {r.admin_note && (
                   <p className="mt-3 rounded-xl bg-blush-50 px-3 py-2 text-[11.5px] leading-relaxed text-cocoa">
                     {r.admin_note}
-                    <ReturnAddressLink text={r.admin_note} />
                   </p>
+                )}
+
+                {/* Shiprocket's reason, for you alone — kept out of the note the customer reads. */}
+                {r.pickup_problem && r.status === "approved" && !r.pickup_booked && (
+                  <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-900">
+                    <p>
+                      <span className="font-semibold">Courier pickup not booked yet:</span> {r.pickup_problem}
+                      <ReturnAddressLink text={r.pickup_problem} />
+                    </p>
+                    <p className="mt-1 text-[10.5px] text-amber-800/80">Only you see this — the customer doesn&rsquo;t.</p>
+                  </div>
                 )}
 
                 {r.status === "completed" && r.type === "refund" && r.refund_amount ? (
@@ -283,7 +314,17 @@ export default function AdminReturns() {
                   {r.status === "requested" && (
                     <>
                       <button
-                        onClick={() => act(r.id, "approve")}
+                        onClick={() =>
+                          // A refund asks for the amount first — the customer is told it.
+                          r.type === "refund"
+                            ? setDialog({
+                                kind: "approve",
+                                row: r,
+                                amount: String(r.suggested_refund ?? r.order_total ?? ""),
+                                err: "",
+                              })
+                            : act(r.id, "approve")
+                        }
                         disabled={busy === r.id}
                         className="flex items-center gap-2 rounded-full bg-rose-600 px-5 py-2 text-[12.5px] text-white hover:bg-rose-700 disabled:opacity-60"
                       >
@@ -314,7 +355,8 @@ export default function AdminReturns() {
                           setDialog({
                             kind: "complete",
                             row: r,
-                            amount: String(r.order_total ?? ""),
+                            // The amount the customer was told when it was approved.
+                            amount: String(r.refund_amount ?? r.order_total ?? ""),
                             err: "",
                           })
                         }
@@ -343,6 +385,41 @@ export default function AdminReturns() {
             className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lift"
             onClick={(e) => e.stopPropagation()}
           >
+            {dialog.kind === "approve" && (
+              <>
+                <h2 className="font-serif text-[1.25rem] text-ink">Approve return</h2>
+                <p className="mt-1 text-[12px] text-fog">
+                  Order <span className="font-mono text-cocoa">{dialog.row.order_number}</span>
+                </p>
+                <p className="mt-3 rounded-xl bg-blush-50 px-3 py-2.5 text-[12px] leading-relaxed text-cocoa">
+                  The customer gets an email that the return is approved, with this refund amount. You can
+                  still change it when you complete the refund.
+                </p>
+
+                <label
+                  htmlFor="approve-amount"
+                  className="mt-4 block text-[11px] font-semibold uppercase tracking-wide text-fog"
+                >
+                  Refund amount (₹)
+                </label>
+                <input
+                  id="approve-amount"
+                  type="number"
+                  autoFocus
+                  value={dialog.amount}
+                  min={1}
+                  max={dialog.row.order_total ?? undefined}
+                  onChange={(e) => setDialog({ ...dialog, amount: e.target.value, err: "" })}
+                  className="input-base mt-1 w-full"
+                />
+                <p className="mt-1 text-[11px] text-fog">
+                  {dialog.row.suggested_refund !== null && dialog.row.suggested_refund < (dialog.row.order_total ?? 0)
+                    ? `Filled in for the returned books (${money(dialog.row.suggested_refund)}) — the order total is ${money(dialog.row.order_total ?? 0)}.`
+                    : `The whole order total, ${money(dialog.row.order_total ?? 0)} — enter less for a partial refund.`}
+                </p>
+              </>
+            )}
+
             {dialog.kind === "complete" && dialog.row.type === "refund" && (
               <>
                 <h2 className="font-serif text-[1.25rem] text-ink">Complete refund</h2>
@@ -436,7 +513,7 @@ export default function AdminReturns() {
             )}
 
             {/* A wrong amount, or the reason the refund was refused. */}
-            {dialog.kind === "complete" && dialog.err && (
+            {(dialog.kind === "complete" || dialog.kind === "approve") && dialog.err && (
               <p role="alert" className="mt-4 rounded-xl bg-red-50 px-3 py-2.5 text-[12px] leading-relaxed text-red-600">
                 {dialog.err}
               </p>
@@ -450,18 +527,26 @@ export default function AdminReturns() {
                 Cancel
               </button>
               <button
-                onClick={dialog.kind === "reject" ? submitReject : submitComplete}
+                onClick={
+                  dialog.kind === "reject" ? submitReject : dialog.kind === "approve" ? submitApprove : submitComplete
+                }
                 disabled={busy === dialog.row.id}
                 className={`flex items-center gap-2 rounded-full px-5 py-2 text-[12.5px] text-white disabled:opacity-60 ${
-                  dialog.kind === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-maroon-800 hover:bg-maroon-900"
+                  dialog.kind === "reject"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : dialog.kind === "approve"
+                      ? "bg-rose-600 hover:bg-rose-700"
+                      : "bg-maroon-800 hover:bg-maroon-900"
                 }`}
               >
                 {busy === dialog.row.id && <Spinner className="h-3.5 w-3.5" />}
                 {dialog.kind === "reject"
                   ? "Reject return"
-                  : dialog.row.type === "refund"
-                    ? "Refund now"
-                    : "Mark done"}
+                  : dialog.kind === "approve"
+                    ? "Approve & email customer"
+                    : dialog.row.type === "refund"
+                      ? "Refund now"
+                      : "Mark done"}
               </button>
             </div>
           </div>

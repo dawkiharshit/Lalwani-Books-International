@@ -11,9 +11,10 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Tells the customer their order moved — dispatched, delivered or cancelled.
+ * Tells the customer their order moved — processed (a courier booked, with
+ * its tracking number), dispatched, delivered or cancelled.
  *
- * One mailable rather than three: the layout is identical and only the
+ * One mailable rather than four: the layout is identical and only the
  * headline, the sentence under it and the tracking block differ.
  */
 class OrderStatusChanged extends Mailable
@@ -29,6 +30,7 @@ class OrderStatusChanged extends Mailable
 
         return new Envelope(
             subject: match ($this->status) {
+                'processing' => "Your {$store} order has been processed — {$number}",
                 'shipped' => "Your {$store} order is on its way — {$number}",
                 'delivered' => "Your {$store} order has arrived — {$number}",
                 'cancelled' => "Your {$store} order was cancelled — {$number}",
@@ -49,14 +51,16 @@ class OrderStatusChanged extends Mailable
                 'store' => Setting::get('site_name', 'Lalwani Books International'),
                 'name' => explode(' ', trim((string) $order->ship_name))[0] ?: 'there',
                 'headline' => match ($this->status) {
+                    'processing' => 'Your order has been processed',
                     'shipped' => 'Your order is on its way',
                     'delivered' => 'Your order has arrived',
                     'cancelled' => 'Your order was cancelled',
                     default => 'Your order was updated',
                 },
                 'body' => match ($this->status) {
-                    'shipped' => 'It left the atelier today. You can follow it with the courier below.',
-                    'delivered' => 'We hope it arrived well. Wear it in good health.',
+                    'processing' => 'Your order has been processed and a courier has been booked for it. Its tracking number is below — use the link to follow your parcel.',
+                    'shipped' => 'It has left our shop and is on its way to you.',
+                    'delivered' => 'We hope it arrived safely. Happy reading!',
                     'cancelled' => 'Nothing will be shipped and nothing further will be charged.',
                     default => 'The status of your order has changed.',
                 },

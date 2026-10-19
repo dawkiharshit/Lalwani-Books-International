@@ -501,4 +501,6 @@ export interface Testimonial {
   location: string | null;
   content: string;
   rating: number;
+  /** The reader's picture, uploaded in admin → Testimonials; initials without one. */
+  photo?: string | null;
 }

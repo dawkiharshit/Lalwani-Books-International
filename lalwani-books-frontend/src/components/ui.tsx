@@ -1,5 +1,6 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowRight, StarSolid } from "./icons";
+import { ArrowRight } from "./icons";
 
 /**
  * One mobile-drawer row: icon, then label, on a single baseline.
@@ -90,26 +91,36 @@ export function PillButton({
   );
 }
 
+/**
+ * A rating in whole stars. All five are one element (.star-row in
+ * globals.css), not five: a page of book cards drew a few hundred star
+ * elements before. `size` "sm" is 12px stars, "md" 14px; `className` is for
+ * spacing around the row.
+ */
 export function Stars({
   rating,
-  className = "h-3 w-3",
+  size = "sm",
+  className = "",
   showValue = false,
 }: {
   rating: number;
+  size?: "sm" | "md";
   className?: string;
   showValue?: boolean;
 }) {
+  const stars = (
+    <span
+      role="img"
+      aria-label={`Rated ${rating} out of 5`}
+      className={`star-row${size === "md" ? " star-row--md" : ""}${showValue || !className ? "" : ` ${className}`}`}
+      style={{ "--stars": Math.min(5, Math.max(0, Math.round(rating))) } as CSSProperties}
+    />
+  );
+  if (!showValue) return stars;
   return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`Rated ${rating} out of 5`}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <StarSolid
-          key={i}
-          className={`${className} ${i <= Math.round(rating) ? "text-gold" : "text-blush-200"}`}
-        />
-      ))}
-      {showValue && (
-        <span className="ml-1 text-[11px] text-fog">({rating.toFixed(1)})</span>
-      )}
+    <span className={`inline-flex items-center${className ? ` ${className}` : ""}`}>
+      {stars}
+      <span className="ml-1 text-[11px] text-fog">({rating.toFixed(1)})</span>
     </span>
   );
 }

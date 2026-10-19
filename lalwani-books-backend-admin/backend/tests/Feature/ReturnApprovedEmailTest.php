@@ -60,7 +60,7 @@ class ReturnApprovedEmailTest extends TestCase
 
         $this->postJson("/api/v1/admin/returns/{$return->id}/complete", ['refund_amount' => 100])
             ->assertOk()
-            ->assertJsonPath('message', 'Return completed and refunded. The customer has been emailed.');
+            ->assertJsonPath('message', 'Return completed and refunded. The customer is being emailed.');
 
         Mail::assertSent(\App\Mail\RefundProcessed::class, function ($mail) {
             $html = $mail->render();
@@ -119,7 +119,7 @@ class ReturnApprovedEmailTest extends TestCase
 
         $this->postJson("/api/v1/admin/returns/{$return->id}/approve", ['admin_note' => 'Sorry about that!'])
             ->assertOk()
-            ->assertJsonPath('message', 'Return approved. The customer has been emailed.');
+            ->assertJsonPath('message', 'Return approved. The customer is being emailed.');
 
         Mail::assertSent(ReturnApproved::class, function (ReturnApproved $mail) {
             $html = $mail->render();
@@ -158,14 +158,98 @@ class ReturnApprovedEmailTest extends TestCase
 
     public function test_a_mail_outage_does_not_undo_the_approval(): void
     {
+        \App\Models\Setting::flush();
         Mail::shouldReceive('to')->andThrow(new \RuntimeException('SMTP down'));
         Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
         $return = $this->pendingReturn();
 
+        // The email goes after the answer, so the answer can't know it failed…
         $this->postJson("/api/v1/admin/returns/{$return->id}/approve")
             ->assertOk()
-            ->assertJsonPath('message', 'Return approved. The customer could not be emailed.');
+            ->assertJsonPath('message', 'Return approved. The customer is being emailed.');
 
         $this->assertSame('approved', $return->fresh()->status);
+        // …but admin → Email (SMTP) lists it, with the address half hidden.
+        $problem = \App\Support\MailLater::recentFailures()[0];
+        $this->assertSame('Return approval', $problem['what']);
+        $this->assertSame('bu•••@example.test', $problem['to']);
+        $this->assertSame('SMTP down', $problem['error']);
+        $this->getJson('/api/v1/admin/integrations/mail')
+            ->assertJsonPath('data.problems.0.what', 'Return approval');
+        // Never on the return itself: customers see its note on their order page.
+        $this->assertStringNotContainsString('SMTP', (string) $return->fresh()->admin_note);
+    }
+
+    /** Two books (₹60 + ₹40), ₹10 off, ₹18 tax: total ₹108. */
+    private function twoBookOrderReturning(array $items): ReturnRequest
+    {
+        $return = $this->pendingReturn(extra: ['items' => $items]);
+        $return->order->forceFill(['subtotal' => 100, 'discount' => 10, 'tax' => 18, 'shipping' => 0, 'total' => 108])->save();
+        \App\Models\OrderItem::create(['order_id' => $return->order_id, 'name' => 'Godaan', 'unit_price' => 60, 'quantity' => 1, 'total' => 60]);
+        \App\Models\OrderItem::create(['order_id' => $return->order_id, 'name' => 'Malgudi Days', 'unit_price' => 40, 'quantity' => 1, 'total' => 40]);
+
+        return $return->fresh();
+    }
+
+    public function test_the_approval_email_tells_the_customer_the_refund_amount(): void
+    {
+        Mail::fake();
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        $return = $this->pendingReturn();
+
+        $this->postJson("/api/v1/admin/returns/{$return->id}/approve", ['refund_amount' => 99.5])->assertOk();
+
+        $this->assertSame(99.5, $return->fresh()->refund_amount);
+        Mail::assertSent(ReturnApproved::class, function (ReturnApproved $mail) {
+            $html = $mail->render();
+
+            return str_contains($html, 'Refund amount')
+                && str_contains($html, '₹99.50')
+                && str_contains($html, 'process your refund of ₹99.50 to your original payment method');
+        });
+    }
+
+    public function test_the_suggested_refund_is_the_whole_total_or_the_returned_books_share(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        $everything = $this->twoBookOrderReturning([
+            ['name' => 'Godaan', 'quantity' => 1], ['name' => 'Malgudi Days', 'quantity' => 1],
+        ]);
+        // One ₹40 book of ₹100: ₹40 − ₹4 of the discount + ₹7.20 of the tax.
+        $oneBook = $this->twoBookOrderReturning([['name' => 'Malgudi Days', 'quantity' => 1]]);
+
+        $this->assertSame(108.0, $everything->suggestedRefund());
+        $this->assertSame(43.2, $oneBook->suggestedRefund());
+
+        $rows = collect($this->getJson('/api/v1/admin/returns')->assertOk()->json('data'))->keyBy('id');
+        $this->assertEquals(43.2, $rows[$oneBook->id]['suggested_refund']);
+    }
+
+    public function test_approving_without_an_amount_uses_the_suggestion_and_completing_refunds_it(): void
+    {
+        Mail::fake();
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        $return = $this->twoBookOrderReturning([['name' => 'Malgudi Days', 'quantity' => 1]]);
+
+        $this->postJson("/api/v1/admin/returns/{$return->id}/approve")->assertOk();
+        $this->assertSame(43.2, $return->fresh()->refund_amount);
+
+        // Completed with the amount box left empty: the amount the customer was told.
+        $this->postJson("/api/v1/admin/returns/{$return->id}/complete")->assertOk();
+
+        $this->assertSame(43.2, $return->fresh()->refund_amount);
+        Mail::assertSent(\App\Mail\RefundProcessed::class, fn ($mail) => str_contains($mail->render(), '₹43.20'));
+    }
+
+    public function test_a_refund_above_the_order_total_cannot_be_promised(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true]));
+        $return = $this->pendingReturn();
+
+        $this->postJson("/api/v1/admin/returns/{$return->id}/approve", ['refund_amount' => 500])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('refund_amount');
+
+        $this->assertSame('requested', $return->fresh()->status);
     }
 }

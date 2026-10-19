@@ -95,6 +95,8 @@ export interface User {
   email: string;
   phone: string | null;
   is_admin: boolean;
+  /** A staff member's areas (admin → Staff); null for the owner and for customers. */
+  staff?: { areas: Record<string, "none" | "view" | "approval" | "direct"> } | null;
   email_verified?: boolean;
   avatar?: string | null;
   /** False for accounts created through Google — there is no password to change. */

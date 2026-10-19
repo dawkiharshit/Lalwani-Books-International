@@ -184,6 +184,12 @@ class Shiprocket
             throw new RuntimeException('This order was cancelled — it cannot be shipped.');
         }
 
+        // One way per order: an AWB typed in by hand means the courier was
+        // booked already, and a second booking would ship it twice.
+        if ($order->awb_code) {
+            throw new RuntimeException('This order already has an AWB number added by hand, so it is not sent to Shiprocket.');
+        }
+
         $order->loadMissing('items.product');
 
         $items = $order->items->map(fn ($i) => [

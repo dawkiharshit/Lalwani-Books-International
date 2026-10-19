@@ -42,10 +42,9 @@ export default function AdminHome() {
           fields: section("bestsellers", "Bestselling Books"),
         },
         {
-          title: "4 · Deals Of The Week",
-          note: "Your offers from Deals, sliding one after another every five seconds — each with its own wording, colour and countdown, beside its own reduced books (books whose Compare-at price is higher than their price).",
-          link: { href: "/admin/deals", label: "Edit deals" },
-          fields: section("deals", "Deals Of The Week"),
+          title: "4 · Recently Viewed",
+          note: "The books each visitor opened lately, newest first — kept in their own browser, so everyone sees their own, and nothing shows until they have opened a book. Prices and stock are always today’s.",
+          fields: section("recent", "Recently Viewed"),
         },
         {
           title: "5 · Promo band",
@@ -71,7 +70,8 @@ export default function AdminHome() {
         },
         {
           title: "9 · Browse By Genre",
-          note: "Your categories as picture tiles — names and images come from Categories.",
+          note:
+            "Books: All Books and eight genres — Fiction, Non-Fiction, Academic, Children, Art & Design, Business, Competitive Exams, Indian Literature — with pictures from Categories. A genre with no category yet (such as Art & Design) says “Coming soon” until you add a category of that name and give it books. Discover: New Arrivals, Bestsellers, The Lalwani Edit (books ticked Featured) and Gift Ideas (books ticked Gift Idea) in Products.",
           link: { href: "/admin/categories", label: "Edit categories" },
           fields: section("genres", "Browse By Genre"),
         },
@@ -87,20 +87,26 @@ export default function AdminHome() {
           fields: [...section("authors", "Popular Authors"), ...section("reading", "Keep Reading")],
         },
         {
-          title: "12 · About block",
+          title: "12 · Deals Of The Week",
+          note: "Your offers from Deals, sliding one after another every five seconds — each with its own wording, colour and countdown, beside its own reduced books (books whose Compare-at price is higher than their price). Right above the About block.",
+          link: { href: "/admin/deals", label: "Edit deals" },
+          fields: section("deals", "Deals Of The Week"),
+        },
+        {
+          title: "13 · About block",
           note: "“Who we are” — three photos beside a short story. Edited with the About page; clear its heading there to hide it.",
           link: { href: "/admin/about#home-block", label: "Edit about block" },
           fields: [],
         },
         {
-          title: "13 · From The Blog",
+          title: "14 · From The Blog",
           note: "Your latest blog posts.",
           link: { href: "/admin/blogs", label: "Edit blog posts" },
           fields: section("blog", "From The Blog"),
         },
         {
-          title: "14 · Testimonials",
-          note: "Every reader quote as a card, the row gliding left to right — the last section of the page, right above the footer. Shown while at least one testimonial is live.",
+          title: "15 · Testimonials",
+          note: "Reader quotes as cards, each with the reader's photo — two rows at a time, sliding on to the next set by itself. The last section of the page, right above the footer; up to twelve live ones are shown.",
           link: { href: "/admin/testimonials", label: "Edit testimonials" },
           fields: section("testimonials", "What readers say"),
         },

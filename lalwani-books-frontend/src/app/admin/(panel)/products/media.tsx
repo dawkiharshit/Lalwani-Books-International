@@ -185,7 +185,8 @@ export function MediaManager({
 
         {video?.type === "youtube" ? (
           <p className="mb-3 rounded-xl bg-blush-50 px-4 py-2.5 text-[12px] text-cocoa">
-            A YouTube link is set in the form below. Uploading a file here replaces it.
+            A YouTube link is set in the form below — the book page shows it with a &ldquo;Watch
+            video&rdquo; button on the photo. Uploading a file here replaces it.
           </p>
         ) : video?.type === "file" ? (
           <video

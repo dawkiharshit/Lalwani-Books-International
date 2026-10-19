@@ -113,7 +113,7 @@ export async function BookSpotlight({ settings: s }: { settings: StoreSettings }
           </h2>
           {book.author && <p className="mt-2 text-[14px] text-fog">by <span className="font-medium text-ink">{book.author}</span></p>}
           <div className="mt-3 flex items-center gap-2">
-            <Stars rating={book.rating_avg} className="h-3.5 w-3.5" />
+            <Stars rating={book.rating_avg} size="md" />
             <span className="text-[12px] text-ink">{book.rating_count}</span>
           </div>
           <p className="mt-4 line-clamp-4 text-[14.5px] leading-relaxed text-cocoa">{str(s, "spotlight_note") || book.description}</p>

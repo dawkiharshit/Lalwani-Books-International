@@ -12,6 +12,7 @@ import { LoadingLayer } from "@/components/loading/LoadingLayer";
 import { BookLoader } from "@/components/loading/BookLoader";
 import { Brand } from "@/components/Brand";
 import { getSettings } from "@/lib/settings";
+import { homeDescription } from "@/lib/page-meta";
 
 /**
  * Sora for everything, as in the Bookory reference: a geometric sans that
@@ -43,10 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 
   const title = seo("seo_home_title") || `${name} — Online Book Store`;
-  const description =
-    seo("seo_home_description") ||
-    settings.site_tagline ||
-    "Buy books online from Lalwani Books International — fiction, academic, children’s and competitive-exam books, delivered across India.";
+  const description = homeDescription(settings);
   const keywords = seo("seo_home_keywords")
     ? seo("seo_home_keywords").split(",").map((k) => k.trim()).filter(Boolean)
     : ["books online", "book store", "buy books India", "academic books", "competitive exam books", "children’s books"];
@@ -111,8 +109,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning: the boot scripts below add `reveal-ready` and
     // `splash-on` to <html> before React hydrates, which is expected, not a mismatch.
+    // data-scroll-behavior: page changes jump straight to the top instead of
+    // gliding there; links within a page still scroll smoothly (globals.css).
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${sora.variable} h-full antialiased`}
       suppressHydrationWarning
     >

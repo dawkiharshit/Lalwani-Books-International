@@ -42,6 +42,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/{slug}/reviews', [ReviewController::class, 'index']);
     Route::post('/products/{slug}/reviews', [ReviewController::class, 'store'])->middleware('throttle:6,1,review');
     Route::get('/categories', [CategoryController::class, 'index']);
+    // Suggestions while typing in a search box: books, authors, categories, ISBNs.
+    Route::get('/search/suggest', [\App\Http\Controllers\Api\SearchController::class, 'suggest'])
+        ->middleware('throttle:120,1,search-suggest');
+    // A finished search, for admin → Search insights.
+    Route::post('/searches', [\App\Http\Controllers\Api\SearchController::class, 'record'])
+        ->middleware(['throttle:30,1,search-note', 'throttle:400,1440,search-note-day']);
     Route::get('/authors', [\App\Http\Controllers\Api\AuthorController::class, 'index']);
     Route::get('/publishers', [\App\Http\Controllers\Api\PublisherController::class, 'index']);
 
@@ -62,6 +68,12 @@ Route::prefix('v1')->group(function () {
         ->middleware('throttle:30,1,quote');
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->middleware('throttle:10,1,newsletter');
     Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:10,1,contact');
+    // A question recorded with the website's mic button (signed in or not).
+    Route::post('/voice-queries', [\App\Http\Controllers\Api\VoiceQueryController::class, 'store'])
+        ->middleware(['throttle:6,10,voice-query', 'throttle:20,1440,voice-query-day']);
+    // Books for Institutions → Request a quote. Stored as a message for admin.
+    Route::post('/institution-enquiries', [\App\Http\Controllers\Api\InstitutionEnquiryController::class, 'store'])
+        ->middleware('throttle:5,10,institution-enquiry');
     // Placing an order needs a signed-in customer; a guest is refused with a
     // message the storefront can show as it is.
     Route::post('/checkout', [CheckoutController::class, 'store'])->middleware(['throttle:10,1,checkout', \App\Http\Middleware\RequireSignIn::class]);
@@ -77,6 +89,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
+        // The customer's own profile picture, shown beside their reviews.
+        Route::post('/auth/avatar', [AuthController::class, 'updateAvatar'])->middleware('throttle:10,1,avatar');
+        Route::delete('/auth/avatar', [AuthController::class, 'destroyAvatar']);
         Route::put('/auth/password', [AuthController::class, 'updatePassword']);
 
         // Signup email confirmation
@@ -103,8 +118,26 @@ Route::prefix('v1')->group(function () {
         // Admin
         // Every admin write clears the storefront cache on its way out, so a
         // saved change is live on the next page load.
-        Route::prefix('admin')->middleware(['admin', \App\Http\Middleware\RefreshStorefront::class])->group(function () {
+        // The owner everywhere; staff only in the areas the owner gave them, and
+        // their saves held for approval where so set (App\Support\StaffAccess).
+        Route::prefix('admin')->middleware([\App\Http\Middleware\AdminOrStaff::class, \App\Http\Middleware\RefreshStorefront::class])->group(function () {
+            // Staff and their changes — the owner's alone.
+            Route::middleware('admin')->group(function () {
+                Route::get('/staff', [\App\Http\Controllers\Api\Admin\AdminStaffController::class, 'index']);
+                Route::post('/staff', [\App\Http\Controllers\Api\Admin\AdminStaffController::class, 'store'])->middleware('throttle:20,1,staff-add');
+                Route::put('/staff/{user}', [\App\Http\Controllers\Api\Admin\AdminStaffController::class, 'update']);
+                Route::delete('/staff/{user}', [\App\Http\Controllers\Api\Admin\AdminStaffController::class, 'destroy']);
+                Route::get('/approvals', [\App\Http\Controllers\Api\Admin\AdminApprovalController::class, 'index']);
+                Route::get('/approvals/count', [\App\Http\Controllers\Api\Admin\AdminApprovalController::class, 'count']);
+                Route::post('/approvals/{id}/approve', [\App\Http\Controllers\Api\Admin\AdminApprovalController::class, 'approve']);
+                Route::post('/approvals/{id}/reject', [\App\Http\Controllers\Api\Admin\AdminApprovalController::class, 'reject']);
+                Route::get('/approvals/{id}/files/{index}', [\App\Http\Controllers\Api\Admin\AdminApprovalController::class, 'file'])->whereNumber('index');
+            });
+            // A staff member's own changes and how they went.
+            Route::get('/my-changes', [\App\Http\Controllers\Api\Admin\AdminApprovalController::class, 'mine']);
+
             Route::get('/stats', [DashboardController::class, 'stats']);
+            Route::get('/search-insights', [\App\Http\Controllers\Api\Admin\AdminSearchInsightsController::class, 'index']);
             Route::get('/products', [AdminProductController::class, 'index']);
             Route::get('/products/{product}', [AdminProductController::class, 'show']);
             Route::post('/products', [AdminProductController::class, 'store']);
@@ -117,6 +150,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/orders/{order}/shiprocket', [\App\Http\Controllers\Api\Admin\AdminShippingController::class, 'push']);
             Route::post('/orders/{order}/shiprocket/awb', [\App\Http\Controllers\Api\Admin\AdminShippingController::class, 'assign']);
             Route::get('/orders/{order}/shiprocket/track', [\App\Http\Controllers\Api\Admin\AdminShippingController::class, 'track']);
+            // An AWB booked elsewhere (e.g. on Shiprocket's site), typed in; the customer is emailed it.
+            Route::put('/orders/{order}/awb', [\App\Http\Controllers\Api\Admin\AdminShippingController::class, 'manualAwb']);
             Route::put('/orders/{order}/status', [AdminOrderController::class, 'updateStatus']);
             Route::get('/coupons', [AdminCouponController::class, 'index']);
             Route::post('/coupons', [AdminCouponController::class, 'store']);
@@ -169,6 +204,15 @@ Route::prefix('v1')->group(function () {
             // Newsletter subscribers + contact messages
             Route::get('/subscribers', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'subscribers']);
             Route::delete('/subscribers/{subscriber}', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'destroySubscriber']);
+            // Voice queries recorded on the website (see App\Support\VoiceQueries).
+            Route::get('/voice-queries', [\App\Http\Controllers\Api\Admin\AdminVoiceQueryController::class, 'index']);
+            Route::get('/voice-queries/count', [\App\Http\Controllers\Api\Admin\AdminVoiceQueryController::class, 'count']);
+            Route::get('/voice-queries/{id}/audio', [\App\Http\Controllers\Api\Admin\AdminVoiceQueryController::class, 'audio'])
+                ->where('id', '[0-9A-HJKMNP-TV-Z]{26}');
+            Route::put('/voice-queries/{id}', [\App\Http\Controllers\Api\Admin\AdminVoiceQueryController::class, 'update'])
+                ->where('id', '[0-9A-HJKMNP-TV-Z]{26}');
+            Route::delete('/voice-queries/{id}', [\App\Http\Controllers\Api\Admin\AdminVoiceQueryController::class, 'destroy'])
+                ->where('id', '[0-9A-HJKMNP-TV-Z]{26}');
             Route::get('/messages', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'messages']);
             Route::put('/messages/{message}', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'updateMessage']);
             Route::delete('/messages/{message}', [\App\Http\Controllers\Api\Admin\AdminInboxController::class, 'destroyMessage']);
@@ -177,12 +221,28 @@ Route::prefix('v1')->group(function () {
             Route::get('/settings', [\App\Http\Controllers\Api\Admin\AdminSettingController::class, 'index']);
             Route::put('/settings', [\App\Http\Controllers\Api\Admin\AdminSettingController::class, 'update']);
 
+            // Integrations hold the shop's keys and passwords — the owner's alone.
+            Route::middleware('admin')->group(function () {
             // Integration credentials (write-only secrets). One group per admin
             // screen — payment | delivery | mail — managed independently.
             Route::get('/integrations/{group}', [\App\Http\Controllers\Api\Admin\AdminGatewayController::class, 'index']);
             Route::put('/integrations/{group}', [\App\Http\Controllers\Api\Admin\AdminGatewayController::class, 'update']);
             Route::post('/integrations/{group}/test', [\App\Http\Controllers\Api\Admin\AdminGatewayController::class, 'test'])
                 ->middleware('throttle:12,1,gateway-test');
+            // Stop using an integration, keeping its details; and resume it.
+            Route::post('/integrations/{group}/disconnect', [\App\Http\Controllers\Api\Admin\AdminGatewayController::class, 'disconnect']);
+            Route::post('/integrations/{group}/connect', [\App\Http\Controllers\Api\Admin\AdminGatewayController::class, 'connect']);
+
+            // WhatsApp → Order messages: which AiGrowBot template goes out at
+            // each order step. Reading templates sends nothing; the test sends
+            // one message to the number the admin types.
+            Route::get('/whatsapp', [\App\Http\Controllers\Api\Admin\AdminWhatsAppController::class, 'show']);
+            Route::put('/whatsapp', [\App\Http\Controllers\Api\Admin\AdminWhatsAppController::class, 'update']);
+            Route::post('/whatsapp/templates', [\App\Http\Controllers\Api\Admin\AdminWhatsAppController::class, 'refresh'])
+                ->middleware('throttle:10,1,whatsapp-templates');
+            Route::post('/whatsapp/test', [\App\Http\Controllers\Api\Admin\AdminWhatsAppController::class, 'test'])
+                ->middleware('throttle:6,1,whatsapp-test');
+            });
 
             // Image-valued settings (About hero, founder portrait, ...)
             Route::post('/settings/image/{key}', [\App\Http\Controllers\Api\Admin\AdminSettingImageController::class, 'store']);
@@ -210,6 +270,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/testimonials', [\App\Http\Controllers\Api\Admin\AdminTestimonialController::class, 'index']);
             Route::post('/testimonials', [\App\Http\Controllers\Api\Admin\AdminTestimonialController::class, 'store']);
             Route::put('/testimonials/{testimonial}', [\App\Http\Controllers\Api\Admin\AdminTestimonialController::class, 'update']);
+            Route::post('/testimonials/{testimonial}', [\App\Http\Controllers\Api\Admin\AdminTestimonialController::class, 'update']); // POST for multipart (a photo)
+            Route::delete('/testimonials/{testimonial}/photo', [\App\Http\Controllers\Api\Admin\AdminTestimonialController::class, 'destroyPhoto']);
             Route::delete('/testimonials/{testimonial}', [\App\Http\Controllers\Api\Admin\AdminTestimonialController::class, 'destroy']);
 
             // Content blocks — gallery | circles | arrivals | instagram (arpita port)
@@ -316,7 +378,7 @@ Route::prefix('v1')->group(function () {
         'data' => \App\Models\Deal::live()->with('category')->get()->map->toArray()->values(),
     ]));
     Route::get('/testimonials', fn () => response()->json([
-        'data' => \App\Models\Testimonial::active()->get(),
+        'data' => \App\Models\Testimonial::active()->get()->map->toCard()->values(),
     ]));
     Route::get('/content/{type}', function (string $type) {
         $models = [

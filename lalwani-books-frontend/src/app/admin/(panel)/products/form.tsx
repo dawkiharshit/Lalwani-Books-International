@@ -37,6 +37,8 @@ export interface ProductFormValues {
   is_featured: boolean;
   is_new_arrival: boolean;
   is_category_pick: boolean;
+  is_bestseller: boolean;
+  is_gift_idea: boolean;
   image: string;
   video_url: string;
   color_from: string;
@@ -70,6 +72,8 @@ export const EMPTY_PRODUCT: ProductFormValues = {
   is_featured: false,
   is_new_arrival: false,
   is_category_pick: false,
+  is_bestseller: false,
+  is_gift_idea: false,
   image: "",
   video_url: "",
   color_from: "#042B52",
@@ -544,7 +548,7 @@ export function ProductForm({
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-4 pt-5 sm:col-span-2 sm:flex-row sm:gap-10">
+        <div className="grid gap-x-10 gap-y-5 pt-5 sm:col-span-2 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="flex items-center gap-2 text-[12px] text-cocoa">
               <input
@@ -556,7 +560,38 @@ export function ProductForm({
             </label>
             <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-fog">
               Its photo represents this product&rsquo;s category on the Collection page. Tick none
-              and the highest-rated product with a photo is used.
+              and the highest-rated product with a photo is used. Featured books also make up The
+              Lalwani Edit on the home page.
+            </p>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-[12px] text-cocoa">
+              <input
+                type="checkbox"
+                checked={form.is_bestseller}
+                onChange={(e) => set("is_bestseller", e.target.checked)}
+              />
+              Bestseller
+            </label>
+            <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-fog">
+              Shows in Bestselling Books and in Bestsellers under Browse By Genre on the home page.
+              Tick none anywhere and the best-rated books are shown.
+            </p>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-[12px] text-cocoa">
+              <input
+                type="checkbox"
+                checked={form.is_gift_idea}
+                onChange={(e) => set("is_gift_idea", e.target.checked)}
+              />
+              Gift Idea
+            </label>
+            <p className="mt-1 max-w-xs text-[11px] leading-relaxed text-fog">
+              Shows in Gift Ideas under Browse By Genre on the home page. Tick none anywhere and
+              hardcovers and bestsellers are suggested instead.
             </p>
           </div>
 

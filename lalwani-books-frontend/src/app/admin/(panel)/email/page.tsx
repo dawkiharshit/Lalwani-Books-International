@@ -38,6 +38,7 @@ export default function AdminEmail() {
   return (
     <IntegrationPanel
       group="mail"
+      disconnect={{ name: "SMTP email", note: "The shop stops sending email through this SMTP account and goes back to the server’s own mail setup until you connect again." }}
       title="Email (SMTP)"
       blurb="Where the shop sends order confirmations and password-reset links from. Until this is set, no email leaves the server."
       sectionTitle="SMTP — outgoing email"

@@ -77,8 +77,13 @@ function RegisterForm() {
       setNotice("");
       setCooldown(retryAfter);
     } catch (e) {
-      if (e instanceof ApiError && e.errors) setFieldErrors(e.errors);
-      setError(e instanceof Error ? e.message : "Could not create your account.");
+      // Field problems are shown under each field; the banner just points to them.
+      if (e instanceof ApiError && e.errors) {
+        setFieldErrors(e.errors);
+        setError("Please check the fields marked below.");
+      } else {
+        setError(e instanceof Error ? e.message : "Could not create your account.");
+      }
     } finally {
       setBusy(false);
     }

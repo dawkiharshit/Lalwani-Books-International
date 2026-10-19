@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "@/components/Image";
-import type { Category, Deal, ProductCard as ProductCardType } from "@/lib/types";
+import type { Deal, ProductCard as ProductCardType } from "@/lib/types";
 import { dealTheme } from "@/lib/deal-themes";
 import { safeHref } from "@/lib/safe-href";
 import { money } from "@/lib/format";
@@ -10,26 +10,12 @@ import { BookOpenIcon, BookStackIcon, ChevronIcon, DeliveryVanIcon, QuillIcon, Q
 import { Stars } from "../ui";
 import { Doodle, DottedPaper, OpenBook, Ring, Sparkle } from "./doodles";
 import { BookRail, Countdown, DealsSlider, type Testimonial } from "./bookory-client";
-import { Marquee } from "../Marquee";
+import { TestimonialSlider } from "./TestimonialSlider";
+import { AutoScrollRow } from "./AutoScrollRow";
+import { SectionHead } from "./section-head";
 
-/** Section title on the left, a hairline, and a coral "View All" pill. */
-export function SectionHead({ title, href, label = "View All" }: { title: string; href?: string; label?: string }) {
-  return (
-    <div data-reveal className="mb-8 flex items-center gap-6">
-      <h2 className="shrink-0 text-[1.5rem] font-semibold tracking-[-0.02em] text-ink sm:text-[1.85rem]">{title}</h2>
-      <span aria-hidden className="hidden h-px flex-1 bg-blush-200 sm:block" />
-      {href && (
-        <Link
-          href={href}
-          className="group/va ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-600 px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:bg-rose-700 hover:shadow-[0_10px_24px_-10px_rgba(4,43,82,0.45)] sm:ml-0"
-        >
-          {label}
-          <ChevronIcon className="h-3 w-3 -rotate-90 transition-transform group-hover/va:translate-x-0.5" strokeWidth={2.4} />
-        </Link>
-      )}
-    </div>
-  );
-}
+// Kept importable from here, as before.
+export { SectionHead };
 
 export function RailSection({ title, href, products }: { title: string; href: string; products: ProductCardType[] }) {
   if (products.length === 0) return null;
@@ -52,7 +38,7 @@ function BookRow({ p, tall = false }: { p: ProductCardType; tall?: boolean }) {
       <span className="min-w-0">
         <span className="line-clamp-2 text-[15px] font-semibold leading-snug text-ink transition-colors group-hover:text-rose-600">{p.name}</span>
         <span className="mt-1.5 flex items-center gap-1.5">
-          <Stars rating={p.rating_avg} className="h-3 w-3" />
+          <Stars rating={p.rating_avg} />
           <span className="text-[11.5px] text-ink">{p.rating_count}</span>
         </span>
         {p.author && <span className="mt-1 block truncate text-[12px] text-fog">{p.author}</span>}
@@ -217,7 +203,8 @@ export function TrendSection({ products, title = "What's In Trend" }: { products
   return (
     <section className="container-shop pt-16 lg:pt-20">
       <SectionHead title={title} href="/collection?sort=rating" />
-      <div data-reveal-stagger className="scrollbar-hidden -mx-1 flex snap-x snap-mandatory gap-6 overflow-x-auto px-1 pt-2 pb-3">
+      {/* Slides on by one book at a time by itself, then back to the start. */}
+      <AutoScrollRow className="scrollbar-hidden -mx-1 flex snap-x snap-mandatory gap-6 overflow-x-auto px-1 pt-2 pb-3">
         {products.map((p, i) => (
           <Link
             key={p.id}
@@ -233,7 +220,7 @@ export function TrendSection({ products, title = "What's In Trend" }: { products
                 {p.name}
               </span>
               <span className="mt-2 flex items-center gap-1.5">
-                <Stars rating={p.rating_avg} className="h-3 w-3" />
+                <Stars rating={p.rating_avg} />
                 <span className="text-[11.5px] text-ink">{p.rating_count}</span>
               </span>
               {p.author && <span className="mt-1.5 block text-[12px] text-fog">{p.author}</span>}
@@ -242,7 +229,7 @@ export function TrendSection({ products, title = "What's In Trend" }: { products
             </span>
           </Link>
         ))}
-      </div>
+      </AutoScrollRow>
     </section>
   );
 }
@@ -284,21 +271,8 @@ export function TestimonialBand({
             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-rose-800">Readers</p>
             <h2 className="mt-2 text-[1.7rem] font-semibold leading-tight tracking-[-0.02em] text-ink sm:text-[2.1rem]">{title}</h2>
           </div>
-          <Marquee count={items.length} className="mt-8">
-            {items.map((t) => (
-              <li key={t.id} className="flex w-[300px] shrink-0 flex-col rounded-2xl bg-white p-6 shadow-soft sm:w-[360px] sm:p-7">
-                <QuoteIcon className="h-7 w-7 text-rose-300" />
-                <blockquote className="mt-3 text-[15px] font-semibold leading-relaxed text-ink">&ldquo;{t.content}&rdquo;</blockquote>
-                {t.rating > 0 && <Stars rating={t.rating} className="mt-4 h-3.5 w-3.5" />}
-                <p className="mt-auto pt-5 text-[12px] font-semibold uppercase tracking-[0.14em] text-ink">
-                  {t.name}
-                  {(t.designation || t.location) && (
-                    <span className="font-normal text-fog"> / {[t.designation, t.location].filter(Boolean).join(", ")}</span>
-                  )}
-                </p>
-              </li>
-            ))}
-          </Marquee>
+          {/* Two rows at a time, sliding on to the next set by itself. */}
+          <TestimonialSlider items={items.slice(0, 12)} />
         </div>
       </section>
     </div>
@@ -335,62 +309,6 @@ export const GENRE_TINTS = [
   ["#4b6a88", "#3a5671"],
   ["#33507a", "#243d60"],
 ];
-
-/**
- * Colourful category tiles — Bookory's "Genres Books". Each tile sits on a
- * soft shadow that deepens on hover; over a photo, a dark wash rises from the
- * bottom so the white name and count read clearly on any picture.
- */
-export function GenreTiles({
-  categories,
-  title = "Browse By Genre",
-}: {
-  categories: (Category & { image?: string | null })[];
-  title?: string;
-}) {
-  const cats = categories.filter((c) => c.products_count > 0);
-  if (cats.length === 0) return null;
-  return (
-    <section className="container-shop pt-16 lg:pt-20">
-      <SectionHead title={title} href="/collection" />
-      <div data-reveal-stagger className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4">
-        {cats.slice(0, 8).map((c, i) => {
-          const [from, to] = GENRE_TINTS[i % GENRE_TINTS.length];
-          return (
-            <Link
-              key={c.id}
-              href={`/collection?category=${c.slug}`}
-              className="group relative flex aspect-[16/9] flex-col justify-end overflow-hidden rounded-[var(--radius-card)] p-4 text-white shadow-[0_12px_28px_-14px_rgba(0,0,0,0.45)] ring-1 ring-black/5 transition-[translate,box-shadow] duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_46px_-16px_rgba(0,0,0,0.5)] sm:p-5"
-              style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
-            >
-              {c.image ? (
-                <Image src={c.image} alt="" fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover transition-transform duration-500 group-hover:scale-105" />
-              ) : (
-                <BookOpenIcon className="absolute -right-4 -top-4 h-32 w-32 text-white/15 transition-transform duration-500 group-hover:scale-110" strokeWidth={1.2} />
-              )}
-              {/* A dark wash rising from the bottom, so the words read on any photo. */}
-              <span
-                aria-hidden
-                className={`absolute inset-0 ${
-                  c.image
-                    ? "bg-[linear-gradient(to_top,rgba(0,0,0,0.82)_0%,rgba(0,0,0,0.5)_35%,rgba(0,0,0,0.1)_65%,transparent_82%)]"
-                    : "bg-[linear-gradient(to_top,rgba(0,0,0,0.22)_0%,transparent_60%)]"
-                }`}
-              />
-              <span className="relative transition-transform duration-300 group-hover:-translate-y-1">
-                <span className="block text-[15px] font-bold leading-tight [text-shadow:0_2px_12px_rgba(0,0,0,0.6)] sm:text-[19px]">{c.name}</span>
-                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-medium text-white ring-1 ring-white/30 backdrop-blur-sm sm:text-[11.5px]">
-                  {c.products_count} {c.products_count === 1 ? "book" : "books"}
-                  <ChevronIcon className="h-2.5 w-2.5 -rotate-90 transition-transform group-hover:translate-x-0.5" strokeWidth={2.6} />
-                </span>
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 /** Initials avatar for an author — no portrait photos are invented. */
 function AuthorAvatar({ name, index }: { name: string; index: number }) {
@@ -445,7 +363,7 @@ export function AuthorsAndReading({
                   >
                     {a.photo ? (
                       <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-blush-150 shadow-soft">
-                        <Image src={a.photo} alt="" fill sizes="48px" className="object-cover" />
+                        <Image src={a.photo} alt="" fill fixed sizes="48px" className="object-cover" fallback={<AuthorAvatar name={a.name} index={i} />} />
                       </span>
                     ) : (
                       <AuthorAvatar name={a.name} index={i} />
@@ -482,7 +400,7 @@ export function AuthorsAndReading({
               <span className="min-w-0">
                 <span className="text-[1.3rem] font-semibold text-ink transition-colors group-hover:text-rose-600">{lead.name}</span>
                 <span className="mt-2 flex items-center gap-1.5">
-                  <Stars rating={lead.rating_avg} className="h-3 w-3" />
+                  <Stars rating={lead.rating_avg} />
                   <span className="text-[11.5px] text-ink">{lead.rating_count}</span>
                 </span>
                 {lead.author && <span className="mt-1.5 block text-[12.5px] text-fog">{lead.author}</span>}

@@ -1,14 +1,18 @@
 import { PageBanner } from "@/components/PageBanner";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/page-meta";
 import Link from "next/link";
 import Image from "@/components/Image";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "The Blog",
-  description: "Reading lists, new arrivals and news from Lalwani Books International.",
-};
+export function generateMetadata(): Promise<Metadata> {
+  return pageMetadata({
+    title: "The Blog",
+    description: "Reading lists, new arrivals and news from Lalwani Books International.",
+    path: "/blog",
+  });
+}
 
 export const revalidate = 120;
 

@@ -11,6 +11,8 @@ export interface ProductCard {
   tagline: string | null;
   /** Shown under the title on every book card. */
   author: string | null;
+  /** As saved in admin → Products (with or without dashes); shown under the author. */
+  isbn?: string | null;
   price: number;
   compare_at_price: number | null;
   rating_avg: number;
@@ -82,6 +84,8 @@ export interface Review {
   rating: number;
   title: string | null;
   body: string;
+  /** The reviewer's profile picture (My account), when they were signed in. */
+  photo?: string | null;
   created_at: string;
 }
 
@@ -201,6 +205,8 @@ export interface OrderReturn {
   photos: string[];
   status: "requested" | "approved" | "rejected" | "completed";
   admin_note: string | null;
+  /** A courier pickup is booked for it. */
+  pickup_booked?: boolean;
   return_awb: string | null;
   tracking_url: string | null;
   refund_amount: number | null;

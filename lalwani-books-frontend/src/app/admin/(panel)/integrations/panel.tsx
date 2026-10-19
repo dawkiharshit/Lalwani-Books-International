@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ApiError, clientApi, describeError } from "@/admin/lib/api";
 import { Spinner } from "@/admin/components/ui";
 import { Select } from "@/admin/components/Select";
+import { ConfirmDialog } from "@/admin/components/ConfirmDialog";
 
 interface Field {
   value: string | null;
@@ -16,7 +18,11 @@ interface Payload {
   group: string;
   fields: Record<string, Field>;
   enabled: boolean;
+  /** Switched off by the admin: the details are kept but nothing uses them. */
+  disconnected: boolean;
   webhook_url: string | null;
+  /** Email only: the last messages that could not be sent, newest first. */
+  problems?: { at: string; what: string; to: string; error: string }[];
 }
 
 export interface IntegrationField {
@@ -47,8 +53,12 @@ export function IntegrationPanel({
   testLabel,
   testTo,
   note,
+  hideHeading = false,
+  onTested,
+  disconnect,
+  onChanged,
 }: {
-  group: "payment" | "delivery" | "mail" | "google";
+  group: "payment" | "delivery" | "mail" | "google" | "whatsapp" | "whatsapp_api";
   title: string;
   blurb: string;
   sectionTitle: string;
@@ -59,6 +69,14 @@ export function IntegrationPanel({
   /** Mail only: let the tester name the inbox instead of assuming the admin address is real. */
   testTo?: { label: string; placeholder: string };
   note?: React.ReactNode;
+  /** For a second panel on a screen that already has its heading. */
+  hideHeading?: boolean;
+  /** Told how the test went, so the rest of the screen can catch up. */
+  onTested?: (ok: boolean) => void;
+  /** For the Disconnect button: what to call it, and what stops working while it is off. */
+  disconnect?: { name: string; note: string };
+  /** Told when it is disconnected or connected again. */
+  onChanged?: () => void;
 }) {
   const [data, setData] = useState<Payload | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -69,6 +87,12 @@ export function IntegrationPanel({
   const [testing, setTesting] = useState(false);
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [testAddress, setTestAddress] = useState("");
+  const [askOff, setAskOff] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const [switchMsg, setSwitchMsg] = useState("");
+  const offNote = disconnect?.note ?? "The shop stops using these details until you connect again.";
+  // Stable, so the dialog's Escape and focus handling is set up once.
+  const cancelOff = useCallback(() => setAskOff(false), []);
 
   const load = useCallback(() => {
     clientApi<{ data: Payload }>(`/admin/integrations/${group}`)
@@ -136,10 +160,40 @@ export function IntegrationPanel({
         body: testTo && testAddress.trim() ? { to: testAddress.trim() } : undefined,
       });
       setTestMsg({ ok: true, text: res.message });
+      onTested?.(true);
     } catch (err) {
       setTestMsg({ ok: false, text: err instanceof ApiError ? err.message : "Test failed." });
+      onTested?.(false);
     } finally {
       setTesting(false);
+    }
+  }
+
+  /** Disconnect (keeping the details) or connect again. */
+  async function switchTo(connected: boolean) {
+    setSwitching(true);
+    setError("");
+    setSaved(false);
+    setTestMsg(null);
+    setSwitchMsg("");
+    try {
+      const res = await clientApi<{ data: Payload }>(
+        `/admin/integrations/${group}/${connected ? "connect" : "disconnect"}`,
+        { method: "POST" },
+      );
+      setData(res.data);
+      setAskOff(false);
+      setSwitchMsg(
+        connected
+          ? "Connected again — the saved details are in use."
+          : "Disconnected — the details are kept, but nothing uses them.",
+      );
+      onChanged?.();
+    } catch (err) {
+      setAskOff(false);
+      setError(describeError(err, connected ? "connect it again" : "disconnect it"));
+    } finally {
+      setSwitching(false);
     }
   }
 
@@ -236,15 +290,28 @@ export function IntegrationPanel({
 
   return (
     <form onSubmit={save} className="flex flex-col gap-5">
-      <div>
-        <h1 className="font-serif text-[1.6rem] text-ink">{title}</h1>
-        <p className="mt-1 text-[12px] text-fog">{blurb}</p>
-      </div>
+      {!hideHeading && (
+        <div>
+          <h1 className="font-serif text-[1.6rem] text-ink">{title}</h1>
+          <p className="mt-1 text-[12px] text-fog">{blurb}</p>
+        </div>
+      )}
 
       {error && <p className="rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{error}</p>}
       {saved && (
         <p className="rounded-xl bg-green-50 px-4 py-2.5 text-[12px] text-green-700">
-          Saved — this takes effect immediately.
+          {data.disconnected
+            ? "Saved — still disconnected; press “Connect again” to use these details."
+            : "Saved — this takes effect immediately."}
+        </p>
+      )}
+      {switchMsg && (
+        <p
+          className={`rounded-xl px-4 py-2.5 text-[12px] ${
+            data.disconnected ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-700"
+          }`}
+        >
+          {switchMsg}
         </p>
       )}
       {testMsg && (
@@ -264,12 +331,32 @@ export function IntegrationPanel({
           </p>
           <span
             className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-              data.enabled ? "bg-green-100 text-green-700" : "bg-blush-100 text-fog"
+              data.disconnected
+                ? "bg-amber-100 text-amber-700"
+                : data.enabled
+                  ? "bg-green-100 text-green-700"
+                  : "bg-blush-100 text-fog"
             }`}
           >
-            {data.enabled ? onLabel : offLabel}
+            {data.disconnected ? "Disconnected" : data.enabled ? onLabel : offLabel}
           </span>
         </div>
+
+        {data.disconnected && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 sm:col-span-2">
+            <p className="max-w-xl text-[12.5px] leading-relaxed text-amber-800">
+              <b>Disconnected.</b> {offNote} The details below are kept, so you can connect again at any time.
+            </p>
+            <button
+              type="button"
+              onClick={() => switchTo(true)}
+              disabled={switching}
+              className="flex items-center gap-2 rounded-full bg-rose-600 px-5 py-2 text-[12.5px] text-white hover:bg-rose-700 disabled:opacity-60"
+            >
+              {switching && <Spinner className="h-3.5 w-3.5" />} Connect again
+            </button>
+          </div>
+        )}
 
         {fields.map(renderField)}
 
@@ -295,28 +382,59 @@ export function IntegrationPanel({
 
         {note && <div className="sm:col-span-2">{note}</div>}
 
-        <div className="sm:col-span-2">
-          {testTo && (
-            <input
-              type="email"
-              value={testAddress}
-              onChange={(e) => setTestAddress(e.target.value)}
-              placeholder={testTo.placeholder}
-              aria-label={testTo.label}
-              className="w-full rounded-full border border-blush-200 px-4 py-2 text-[12.5px] text-ink outline-none placeholder:text-fog focus:border-rose-400 sm:w-64"
-            />
-          )}
+        {/* Emails are sent after the page answers, so failures are kept here. */}
+        {data.problems && data.problems.length > 0 && (
+          <div className="rounded-xl border border-red-100 bg-red-50/60 px-4 py-3 sm:col-span-2">
+            <p className="text-[12px] font-semibold text-red-700">Recent emails that could not be sent</p>
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {data.problems.map((p, i) => (
+                <li key={`${p.at}-${i}`} className="text-[11.5px] leading-relaxed text-cocoa">
+                  <span className="text-fog">
+                    {new Date(p.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                  </span>{" "}
+                  · {p.what} to {p.to} — <span className="text-red-700">{p.error}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-          <button
-            type="button"
-            onClick={test}
-            disabled={testing || busy}
-            className="flex items-center gap-2 rounded-full border border-blush-200 px-5 py-2 text-[12.5px] text-cocoa hover:bg-blush-100 disabled:opacity-60"
-          >
-            {testing && <Spinner className="h-3.5 w-3.5" />}{" "}
-            {dirty ? `Save & ${testLabel.charAt(0).toLowerCase()}${testLabel.slice(1)}` : testLabel}
-          </button>
-        </div>
+        {/* While disconnected the banner above offers "Connect again" instead. */}
+        {!data.disconnected && (
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+            {testTo && (
+              <input
+                type="email"
+                value={testAddress}
+                onChange={(e) => setTestAddress(e.target.value)}
+                placeholder={testTo.placeholder}
+                aria-label={testTo.label}
+                className="w-full rounded-full border border-blush-200 px-4 py-2 text-[12.5px] text-ink outline-none placeholder:text-fog focus:border-rose-400 sm:w-64"
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={test}
+              disabled={testing || busy}
+              className="flex items-center gap-2 rounded-full border border-blush-200 px-5 py-2 text-[12.5px] text-cocoa hover:bg-blush-100 disabled:opacity-60"
+            >
+              {testing && <Spinner className="h-3.5 w-3.5" />}{" "}
+              {dirty ? `Save & ${testLabel.charAt(0).toLowerCase()}${testLabel.slice(1)}` : testLabel}
+            </button>
+
+            {Object.values(data.fields).some((f) => f.set) && (
+              <button
+                type="button"
+                onClick={() => setAskOff(true)}
+                disabled={switching || busy}
+                className="ml-auto rounded-full border border-red-200 px-5 py-2 text-[12.5px] text-red-600 hover:bg-red-50 disabled:opacity-60"
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <div>
@@ -327,6 +445,29 @@ export function IntegrationPanel({
           {busy && <Spinner className="h-4 w-4" />} Save
         </button>
       </div>
+
+      {/* On the page body, so no card or animation around the panel can clip it. */}
+      {askOff &&
+        createPortal(
+          <ConfirmDialog
+            open
+            title={`Disconnect ${disconnect?.name ?? title}?`}
+            body={
+              <>
+                <p>{offNote}</p>
+                <p className="mt-2">
+                  The details stay saved, so you can press &ldquo;Connect again&rdquo; at any time.
+                </p>
+              </>
+            }
+            confirmLabel="Disconnect"
+            tone="danger"
+            busy={switching}
+            onConfirm={() => switchTo(false)}
+            onCancel={cancelOff}
+          />,
+          document.body,
+        )}
     </form>
   );
 }

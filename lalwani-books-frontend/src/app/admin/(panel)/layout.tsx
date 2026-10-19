@@ -9,10 +9,17 @@ import { ConfirmDialog } from "@/admin/components/ConfirmDialog";
 import { AdminLoadingScreen } from "./loading-screen";
 import { Brand } from "@/admin/components/Brand";
 import { DEFAULT_SETTINGS, fetchSettingsClient } from "@/admin/lib/settings";
+import { clientApi, PENDING_EVENT } from "@/admin/lib/api";
+import { canOpen, firstPage } from "@/admin/lib/staff";
+import { APPROVALS_CHANGED } from "./approvals/change-details";
+import { VOICE_QUERIES_CHANGED } from "./voice-queries/recording";
 import {
   AtIcon,
   BoxIcon,
   CardIcon,
+  CheckIcon,
+  ClockIcon,
+  WhatsAppIcon,
   ChartIcon,
   ChevronIcon,
   DashboardIcon,
@@ -30,6 +37,7 @@ import {
   MegaphoneIcon,
   MenuIcon,
   MessageIcon,
+  MicIcon,
   PagesIcon,
   PaletteIcon,
   PercentIcon,
@@ -37,6 +45,8 @@ import {
   QuoteIcon,
   ReceiptIcon,
   RefreshIcon,
+  SearchIcon,
+  ShieldIcon,
   SparkleIcon,
   StarIcon,
   TagIcon,
@@ -72,7 +82,10 @@ const GROUPS: {
 }[] = [
   {
     title: "Main",
-    links: [{ href: "/admin", label: "Dashboard", icon: DashboardIcon, tint: TINT.sky }],
+    links: [
+      { href: "/admin", label: "Dashboard", icon: DashboardIcon, tint: TINT.sky },
+      { href: "/admin/search-insights", label: "Search Insights", icon: SearchIcon, tint: TINT.rose },
+    ],
   },
   {
     title: "Shop",
@@ -119,12 +132,14 @@ const GROUPS: {
       { href: "/admin/email", label: "Email (SMTP)", icon: AtIcon, tint: TINT.sky },
       { href: "/admin/google", label: "Google Sign-in", icon: KeyIcon, tint: TINT.honey },
       { href: "/admin/payments", label: "Payments", icon: CardIcon, tint: TINT.mint },
+      { href: "/admin/whatsapp", label: "WhatsApp (AiGrowBot)", icon: WhatsAppIcon, tint: TINT.mint },
     ],
   },
   {
     title: "Inbox",
     links: [
       { href: "/admin/inbox", label: "Messages & Subscribers", icon: MailIcon, tint: TINT.sky },
+      { href: "/admin/voice-queries", label: "Voice Queries", icon: MicIcon, tint: TINT.rose },
     ],
   },
 ];
@@ -253,14 +268,97 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!ready) return;
     if (!user) router.replace("/admin/login?next=/admin");
     // No shop in this app to send a customer to: sign them out instead.
-    else if (!user.is_admin) void logout().then(() => router.replace("/admin/login?next=/admin"));
-  }, [ready, user, router, logout]);
+    else if (!user.is_admin && !user.staff) void logout().then(() => router.replace("/admin/login?next=/admin"));
+    // A staff member without the dashboard starts on their first area.
+    else if (pathname === "/admin" && !canOpen(user, "/admin")) router.replace(firstPage(user));
+  }, [ready, user, router, logout, pathname]);
 
-  // Until the session is confirmed (and while a non-admin is being sent
+  /** "Sent for approval" after a staff member's save, for a few seconds. */
+  const [pendingNote, setPendingNote] = useState("");
+  useEffect(() => {
+    let timer: number | undefined;
+    const onPending = (e: Event) => {
+      setPendingNote(String((e as CustomEvent).detail || "Sent for approval."));
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setPendingNote(""), 7000);
+    };
+    window.addEventListener(PENDING_EVENT, onPending);
+    return () => {
+      window.removeEventListener(PENDING_EVENT, onPending);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  /** Staff changes waiting for the owner, shown beside "Approvals". */
+  const [waiting, setWaiting] = useState(0);
+  const isOwner = Boolean(user?.is_admin);
+  useEffect(() => {
+    if (!isOwner) return;
+    let cancelled = false;
+    const count = () =>
+      clientApi<{ data: { pending: number } }>("/admin/approvals/count")
+        .then((res) => !cancelled && setWaiting(res.data.pending))
+        .catch(() => {});
+    void count();
+    // And again as soon as one is approved or rejected.
+    window.addEventListener(APPROVALS_CHANGED, count);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(APPROVALS_CHANGED, count);
+    };
+  }, [isOwner, pathname]);
+
+  /** Voice queries not yet answered, shown beside "Voice Queries". */
+  const [unheard, setUnheard] = useState(0);
+  const hearsVoice = Boolean(user && canOpen(user, "/admin/voice-queries"));
+  useEffect(() => {
+    if (!hearsVoice) return;
+    let cancelled = false;
+    const count = () =>
+      clientApi<{ data: { new: number } }>("/admin/voice-queries/count")
+        .then((res) => !cancelled && setUnheard(res.data.new))
+        .catch(() => {});
+    void count();
+    // And again as soon as one is answered or deleted.
+    window.addEventListener(VOICE_QUERIES_CHANGED, count);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(VOICE_QUERIES_CHANGED, count);
+    };
+  }, [hearsVoice, pathname]);
+
+  // Until the session is confirmed (and while a customer is being sent
   // away), show the panel's frame as a loading screen, not a blank page.
-  if (!ready || !user || !user.is_admin) {
+  if (!ready || !user || (!user.is_admin && !user.staff)) {
     return <AdminLoadingScreen brand={brand} groups={GROUPS} />;
   }
+
+  /*
+   * The sidebar for whoever is signed in: everything for the owner, with the
+   * team pages; for a staff member, only their areas and their own changes.
+   */
+  const groups = [
+    ...GROUPS.map((g) => ({
+      ...g,
+      links: g.links
+        .filter((l) => canOpen(user, l.href))
+        .map((l) => (l.href === "/admin/voice-queries" ? { ...l, badge: unheard } : l)),
+    })).filter((g) => g.links.length),
+    user.is_admin
+      ? {
+          title: "Team",
+          links: [
+            { href: "/admin/staff", label: "Staff", icon: ShieldIcon, tint: TINT.lilac },
+            { href: "/admin/approvals", label: "Approvals", icon: CheckIcon, tint: TINT.mint, badge: waiting },
+          ],
+        }
+      : {
+          title: "My work",
+          links: [{ href: "/admin/my-changes", label: "My changes", icon: ClockIcon, tint: TINT.sky }],
+        },
+  ] as { title: string; links: { href: string; label: string; icon: NavIcon; tint: string; badge?: number }[] }[];
+  const roleLabel = user.is_admin ? "Administrator" : "Staff";
+  const allowed = canOpen(user, pathname);
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
@@ -293,15 +391,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </Link>
       {/* Settings lives in this menu only — it was taken out of the Store
           group in the nav so the sidebar lists it once. */}
-      <Link
-        role="menuitem"
-        href="/admin/settings"
-        onClick={close}
-        className={accountItem}
-      >
-        <GearIcon className="h-[15px] w-[15px] shrink-0 text-white/45" />
-        Settings
-      </Link>
+      {canOpen(user, "/admin/settings") && (
+        <Link
+          role="menuitem"
+          href="/admin/settings"
+          onClick={close}
+          className={accountItem}
+        >
+          <GearIcon className="h-[15px] w-[15px] shrink-0 text-white/45" />
+          Settings
+        </Link>
+      )}
       {/* The shop lives in its own app; set NEXT_PUBLIC_STOREFRONT_URL to show this. */}
       {STOREFRONT_URL && (
         <a
@@ -372,7 +472,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12px] font-medium">{user.name}</span>
-            <span className="block text-[10px] text-white/50">Administrator</span>
+            <span className="block text-[10px] text-white/50">{roleLabel}</span>
           </span>
           <ChevronIcon
             className={`h-3.5 w-3.5 shrink-0 text-white/50 transition-transform duration-200 ${
@@ -400,7 +500,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       <nav className="flex-1 px-3 pb-4">
-        {GROUPS.map((group) => {
+        {groups.map((group) => {
           // The group holding the current page stays open regardless, so a
           // collapsed section can never hide where you actually are.
           const hasCurrent = group.links.some((l) => isActive(l.href));
@@ -443,6 +543,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       }`}
                     />
                     <span className="min-w-0 flex-1 truncate">{l.label}</span>
+                    {l.badge ? (
+                      <span className="rounded-full bg-mustard px-1.5 py-px text-[10px] font-semibold text-ink">{l.badge}</span>
+                    ) : null}
                   </Link>
                 </li>
               ))}
@@ -525,7 +628,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         so the menu says it before the entries. */}
                     <div className="mb-1 border-b border-white/10 px-3 pb-2 pt-1.5">
                       <p className="truncate text-[12px] font-medium text-white">{user.name}</p>
-                      <p className="text-[10px] text-white/50">Administrator</p>
+                      <p className="text-[10px] text-white/50">{roleLabel}</p>
                     </div>
                     {accountEntries(closeBarMenu)}
                   </div>
@@ -543,7 +646,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
           </div>
         </div>
-        <main className="flex-1 p-5 sm:p-6">{children}</main>
+        <main className="flex-1 p-5 sm:p-6">
+          {allowed ? (
+            children
+          ) : (
+            // A staff member who followed a link to a page that is not theirs.
+            <div className="card mx-auto mt-10 max-w-md px-8 py-12 text-center">
+              <h1 className="font-serif text-[1.4rem] text-ink">Not part of your access</h1>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-fog">
+                This page is managed by the shop owner. Ask them if you need it.
+              </p>
+              <Link
+                href={firstPage(user)}
+                className="mt-5 inline-block rounded-full bg-rose-600 px-6 py-2.5 text-[12.5px] text-white hover:bg-rose-700"
+              >
+                Go to my pages
+              </Link>
+            </div>
+          )}
+        </main>
+
+        {/* A staff member's save, held for the owner: said once, plainly. */}
+        {pendingNote && (
+          <div
+            role="status"
+            className="fixed inset-x-4 bottom-5 z-[70] mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-maroon-900 px-5 py-4 text-white shadow-lift [animation:shopmenu_.2s_ease-out] sm:inset-x-auto sm:right-6"
+          >
+            <ClockIcon className="mt-0.5 h-4 w-4 shrink-0 text-mustard" />
+            <div className="min-w-0 flex-1 text-[12.5px] leading-relaxed">
+              <p className="font-semibold">Sent for approval</p>
+              <p className="text-white/75">{pendingNote}</p>
+              <Link href="/admin/my-changes" className="mt-1 inline-block text-mustard underline-offset-2 hover:underline">
+                See my changes →
+              </Link>
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => setPendingNote("")}
+              className="text-[18px] leading-none text-white/50 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

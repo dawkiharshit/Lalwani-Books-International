@@ -51,6 +51,7 @@ async function request<T>(path: string, opts: FetchOptions): Promise<T> {
   else if (opts.revalidate !== undefined) init.next = { revalidate: opts.revalidate };
 
   const res = await fetch(`${API_BASE}${path}`, init);
+  await heldForApproval(res);
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
@@ -106,6 +107,7 @@ async function upload<T>(path: string, formData: FormData, method: "POST" | "PUT
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { method, headers, body: formData, cache: "no-store" });
+  await heldForApproval(res);
 
   if (!res.ok) {
     let message = `Upload failed (${res.status})`;
@@ -124,10 +126,44 @@ async function upload<T>(path: string, formData: FormData, method: "POST" | "PUT
 }
 
 /**
+ * A staff member's save that the server held for the owner's approval
+ * (answered 202). It is not an error, so its message is empty — screens show
+ * `err.message` in their red error box, and an empty one shows nothing — and
+ * the admin layout says "sent for approval" instead (PENDING_EVENT).
+ */
+export class PendingApproval extends ApiError {
+  constructor() {
+    super(202, "");
+  }
+}
+
+/** Dispatched on window with the server's words when a save is held for approval. */
+export const PENDING_EVENT = "lalwani:pending-approval";
+
+/**
+ * Stops the screen's own "saved" handling (it was not saved yet) and lets the
+ * layout announce it. Throwing keeps every screen correct without changing
+ * each one: they all treat a throw as "not saved".
+ */
+async function heldForApproval(res: Response): Promise<void> {
+  if (res.status !== 202) return;
+  const data = await res
+    .clone()
+    .json()
+    .catch(() => null);
+  if (!data?.pending_approval) return;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(PENDING_EVENT, { detail: String(data.message || "Sent for approval.") }));
+  }
+  throw new PendingApproval();
+}
+
+/**
  * A plain-language reason for a failed admin request, so a screen can say
  * what went wrong instead of a bare "could not load".
  */
 export function describeError(err: unknown, action = "load these settings"): string {
+  if (err instanceof PendingApproval) return "";
   if (err instanceof ApiError) {
     if (err.status === 401) return "Your admin session has expired. Sign in again to continue.";
     if (err.status === 403) return "This account is not allowed to change these settings.";

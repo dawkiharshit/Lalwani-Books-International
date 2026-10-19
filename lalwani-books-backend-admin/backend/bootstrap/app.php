@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // nosniff, no framing, no PHP version on every answer.
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
+        // Outermost, so it measures the final answer: with its exact length
+        // the browser need not wait for the emails sent after it.
+        $middleware->prepend(\App\Http\Middleware\AnswerFirst::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

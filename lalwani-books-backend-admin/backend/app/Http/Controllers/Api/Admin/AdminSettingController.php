@@ -245,6 +245,9 @@ class AdminSettingController extends Controller
             // headings and the texts that used to be fixed in the storefront.
             'home_bestsellers_enabled' => '1',
             'home_bestsellers_title' => 'Bestselling Books',
+            // The books each visitor opened lately, from their own browser.
+            'home_recent_enabled' => '1',
+            'home_recent_title' => 'Recently Viewed',
             'home_deals_enabled' => '1',
             'home_deals_title' => 'Deals Of The Week',
             'home_trend_enabled' => '1',
@@ -462,6 +465,8 @@ class AdminSettingController extends Controller
             // Home page sections (admin → Home Page).
             'home_bestsellers_enabled' => ['nullable', 'in:0,1'],
             'home_bestsellers_title' => ['nullable', 'string', 'max:80'],
+            'home_recent_enabled' => ['nullable', 'in:0,1'],
+            'home_recent_title' => ['nullable', 'string', 'max:80'],
             'home_deals_enabled' => ['nullable', 'in:0,1'],
             'home_deals_title' => ['nullable', 'string', 'max:80'],
             'home_trend_enabled' => ['nullable', 'in:0,1'],

@@ -4,9 +4,6 @@ namespace App\Support;
 
 use App\Mail\OrderStatusChanged;
 use App\Models\Order;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Throwable;
 
 /**
  * Emails the customer when their order actually moves.
@@ -31,12 +28,32 @@ class OrderNotifier
         }
 
         self::send($order, $to);
+
+        // The same moment on WhatsApp, through AiGrowBot when it is connected.
+        \App\Services\AiGrowBot::notify('order.'.$to, \App\Services\AiGrowBot::orderData($order->fresh()));
     }
 
     /**
-     * Never allowed to break the action that triggered it: the status is
-     * already saved, and a mail outage must not undo that or return an error
-     * to the admin.
+     * A tracking number (AWB) put on the order by hand: the customer is emailed
+     * that their order has been processed, with the number and the link to
+     * follow it — each time the admin saves it, whatever the order's status
+     * (a cancelled order takes no AWB). True when an email is on its way.
+     */
+    public static function trackingAdded(Order $order): bool
+    {
+        if (! $order->email || ! $order->awb_code || $order->status === 'cancelled') {
+            return false;
+        }
+
+        self::send($order, 'processing');
+
+        return true;
+    }
+
+    /**
+     * Sent once the admin (or Shiprocket) has their answer, and never allowed
+     * to break the action that triggered it: the status is already saved, and
+     * a mail outage must not undo that or return an error to the admin.
      */
     private static function send(Order $order, string $status): void
     {
@@ -44,14 +61,9 @@ class OrderNotifier
             return;
         }
 
-        try {
-            Mail::to($order->email)->send(new OrderStatusChanged($order->fresh(), $status));
-        } catch (Throwable $e) {
-            Log::warning('Order status email failed', [
-                'order' => $order->order_number,
-                'status' => $status,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        MailLater::send($order->email, new OrderStatusChanged($order->fresh(), $status), 'Order status', [
+            'order' => $order->order_number,
+            'status' => $status,
+        ]);
     }
 }

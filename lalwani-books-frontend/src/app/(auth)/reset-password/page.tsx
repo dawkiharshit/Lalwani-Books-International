@@ -151,8 +151,9 @@ function ResetForm() {
 
       {!params.get("email") && (
         <>
-          <label className="mt-6 block text-[11px] font-medium text-cocoa">Email</label>
+          <label htmlFor="reset-email" className="mt-6 block text-[11px] font-medium text-cocoa">Email</label>
           <input
+            id="reset-email"
             type="email"
             required
             value={email}
@@ -184,8 +185,9 @@ function ResetForm() {
         ))}
       </div>
 
-      <label className="mt-6 block text-[11px] font-medium text-cocoa">New password</label>
+      <label htmlFor="reset-new-password" className="mt-6 block text-[11px] font-medium text-cocoa">New password</label>
       <input
+        id="reset-new-password"
         type="password"
         required
         minLength={8}
@@ -196,8 +198,9 @@ function ResetForm() {
         autoComplete="new-password"
       />
 
-      <label className="mt-4 block text-[11px] font-medium text-cocoa">Confirm password</label>
+      <label htmlFor="reset-confirm-password" className="mt-4 block text-[11px] font-medium text-cocoa">Confirm password</label>
       <input
+        id="reset-confirm-password"
         type="password"
         required
         minLength={8}

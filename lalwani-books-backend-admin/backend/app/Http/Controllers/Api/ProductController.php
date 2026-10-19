@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Support\GiftIdeas;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -19,17 +20,9 @@ class ProductController extends Controller
             $query->whereIn('id', $idList ?: [0]);
         }
 
-        if ($search = trim((string) $request->query('search'))) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('tagline', 'like', "%{$search}%")
-                    ->orWhere('author', 'like', "%{$search}%")
-                    ->orWhere('publisher', 'like', "%{$search}%")
-                    ->orWhere('isbn', 'like', "%{$search}%")
-                    ->orWhere('notes_top', 'like', "%{$search}%")
-                    ->orWhere('notes_heart', 'like', "%{$search}%")
-                    ->orWhere('notes_base', 'like', "%{$search}%");
-            });
+        // Title, author, publisher, ISBN or subject (see Product::scopeSearch).
+        if ($search = trim(mb_substr((string) $request->query('search'), 0, 120))) {
+            $query->search($search);
         }
 
         // An author's shelf: /collection?author=<slug>.
@@ -42,8 +35,11 @@ class ProductController extends Controller
             $query->whereHas('publisherRecord', fn ($q) => $q->where('slug', $publisher));
         }
 
+        // One category, or several separated by commas — the "Books for
+        // Schools / Universities / Corporates" shelves are a few categories each.
         if ($category = $request->query('category')) {
-            $query->whereHas('category', fn ($q) => $q->where('slug', $category));
+            $slugs = array_slice(array_values(array_filter(array_map('trim', explode(',', (string) $category)))), 0, 12);
+            $query->whereHas('category', fn ($q) => $q->whereIn('slug', $slugs));
         }
 
         // Home rail asks for the hand-picked arrivals.
@@ -57,6 +53,17 @@ class ProductController extends Controller
 
         if ($request->boolean('featured')) {
             $query->where('is_featured', true);
+        }
+
+        // Gift Ideas: the books ticked "Gift idea" in admin → Products. Until
+        // any of those are on sale, hardcovers and bestsellers stand in.
+        if ($request->boolean('gift')) {
+            $giftIds = GiftIdeas::ids();
+            if ($giftIds && Product::query()->active()->whereIn('id', $giftIds)->exists()) {
+                $query->whereIn('id', $giftIds);
+            } else {
+                $query->where(fn ($q) => $q->where('binding', 'like', 'hard%')->orWhere('is_bestseller', true));
+            }
         }
 
         if (is_numeric($request->query('min_price'))) {

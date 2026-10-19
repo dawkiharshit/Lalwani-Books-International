@@ -68,6 +68,59 @@ class AdminShippingController extends Controller
         ]);
     }
 
+    /**
+     * An AWB booked outside this panel — on Shiprocket's own site, say — typed
+     * in by hand. It goes on the order with its tracking link, a pending order
+     * becomes "processing", and every save emails the customer "your order
+     * has been processed" with the number. One way per order: not for an
+     * order already sent to Shiprocket from here.
+     */
+    public function manualAwb(Request $request, Order $order)
+    {
+        // A number copied with spaces in it ("1234 5678 9012") is still one number.
+        if (is_string($request->input('awb_code'))) {
+            $request->merge(['awb_code' => preg_replace('/\s+/', '', $request->input('awb_code'))]);
+        }
+
+        $data = $request->validate([
+            'awb_code' => ['required', 'string', 'regex:/^[A-Za-z0-9][A-Za-z0-9-]{3,39}$/'],
+            'courier_name' => ['nullable', 'string', 'max:80'],
+        ], [
+            'awb_code.required' => 'Enter the AWB number.',
+            'awb_code.regex' => 'An AWB number is 4 to 40 letters or digits (dashes allowed).',
+        ]);
+
+        if ($order->status === 'cancelled') {
+            return response()->json(['message' => 'This order was cancelled — it cannot be shipped.'], 422);
+        }
+        if ($order->shiprocket_order_id) {
+            return response()->json([
+                'message' => 'This order was sent to Shiprocket, so its courier is booked there with “Assign courier” — not by hand.',
+            ], 422);
+        }
+
+        $awb = $data['awb_code'];
+        $was = $order->status;
+
+        $order->forceFill([
+            'awb_code' => $awb,
+            'courier_name' => $data['courier_name'] ?? null,
+            'tracking_url' => 'https://shiprocket.co/tracking/'.rawurlencode($awb),
+            'status' => $was === 'pending' ? 'processing' : $was,
+        ])->save();
+
+        $emailed = \App\Support\OrderNotifier::trackingAdded($order);
+
+        return response()->json([
+            'message' => "AWB {$awb} saved on order {$order->order_number}."
+                .($was !== $order->status ? ' It is now Processing.' : '')
+                .($emailed
+                    ? " The email “Your order has been processed” is on its way to {$order->email}."
+                    : ' No email: the order has no email address.'),
+            'data' => $this->payload($order->fresh()),
+        ]);
+    }
+
     public function track(Order $order)
     {
         abort_unless(Shiprocket::enabled(), 422, 'Shiprocket is not configured.');

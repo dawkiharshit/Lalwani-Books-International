@@ -133,7 +133,11 @@ export function ReturnSection({ order, email }: { order: OrderDetail; email?: st
 
   // ---- An existing return: show its status ----
   if (current) {
-    const s = STATUS[current.status];
+    // "Pickup arranged" only once a courier is actually booked.
+    const s =
+      current.status === "approved" && current.pickup_booked === false
+        ? { ...STATUS.approved, label: "Approved · pickup being arranged" }
+        : STATUS[current.status];
     return (
       <section className="card p-6" aria-label="Return status">
         <div className="flex flex-wrap items-center justify-between gap-2">

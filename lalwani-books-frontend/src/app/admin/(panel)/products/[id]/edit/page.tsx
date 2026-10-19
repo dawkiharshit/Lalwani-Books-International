@@ -11,6 +11,8 @@ import { MediaManager } from "../../media";
 type Row = ProductDetail & {
   is_active: boolean;
   category_id: number;
+  /** On the Gift Ideas list (kept by the server apart from the book's fields). */
+  is_gift_idea?: boolean;
   gallery?: { id: number; url: string; alt: string | null }[];
 };
 
@@ -57,6 +59,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           is_featured: row.is_featured,
           is_new_arrival: row.is_new_arrival ?? false,
           is_category_pick: row.is_category_pick ?? false,
+          is_bestseller: row.is_bestseller ?? false,
+          is_gift_idea: row.is_gift_idea ?? false,
           color_from: row.colors.from,
           color_to: row.colors.to,
           accent: row.colors.accent,

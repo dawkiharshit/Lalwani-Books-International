@@ -9,6 +9,7 @@ import { OrderCard } from "@/admin/components/OrderCard";
 import { EyeIcon, InvoiceIcon } from "@/admin/components/icons";
 import { Spinner } from "@/admin/components/ui";
 import { Select } from "@/admin/components/Select";
+import { AwbDialog } from "./awb-dialog";
 
 interface Row {
   id: number;
@@ -41,6 +42,8 @@ export default function AdminOrders() {
   const [error, setError] = useState("");
   const [shippingError, setShippingError] = useState("");
   const [shipping, setShipping] = useState({ enabled: false });
+  // The order whose AWB number is being typed in.
+  const [awbFor, setAwbFor] = useState<Row | null>(null);
 
   useEffect(() => {
     clientApi<{ data: { enabled: boolean } }>("/admin/shipping/status")
@@ -51,12 +54,12 @@ export default function AdminOrders() {
       .catch((err) => {
         /*
          * A failed probe is not the same as shipping being switched off, and
-         * silently assuming "off" just hides the Shipment column.
+         * silently assuming "off" just hides the Shiprocket buttons.
          */
         setShippingError(
           err instanceof ApiError
             ? `Could not check the Shiprocket connection: ${err.message}`
-            : "Could not check the Shiprocket connection. Shipment actions are hidden."
+            : "Could not check the Shiprocket connection. Its buttons are hidden; an AWB number can still be added by hand."
         );
       });
   }, []);
@@ -202,7 +205,7 @@ export default function AdminOrders() {
                 <th className="pb-2 pr-3">Items</th>
                 <th className="pb-2 pr-3">Payment</th>
                 <th className="pb-2 pr-3">Status</th>
-                {shipping.enabled && <th className="pb-2 pr-3">Shipment</th>}
+                <th className="pb-2 pr-3">Shipment</th>
                 <th className="pb-2 text-right">Total</th>
               </tr>
             </thead>
@@ -268,21 +271,36 @@ export default function AdminOrders() {
                       buttonClassName={`flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-full border-0 px-2.5 py-1 text-left text-[10.5px] font-semibold outline-none disabled:opacity-60 ${STATUS_COLORS[row.status] ?? "bg-blush-100"}`}
                     />
                   </td>
-                  {shipping.enabled && (
-                    <td className="py-3 pr-3">
-                      {row.awb_code ? (
-                        <span className="block">
-                          <span className="block text-[11px] text-ink">{row.courier_name}</span>
-                          <a
-                            href={row.tracking_url ?? "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10.5px] text-rose-600 hover:underline"
+                  {/* One way per order: Shiprocket (send, then assign a courier)
+                      or the AWB number typed in by hand. Until one is chosen
+                      both are offered; after that only the chosen one shows. */}
+                  <td className="py-3 pr-3">
+                    {row.awb_code ? (
+                      <span className="block">
+                        {row.courier_name && <span className="block text-[11px] text-ink">{row.courier_name}</span>}
+                        <a
+                          href={row.tracking_url ?? "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10.5px] text-rose-600 hover:underline"
+                        >
+                          {row.awb_code}
+                        </a>
+                        {/* A number typed in by hand can be corrected (and emailed again). */}
+                        {!row.shiprocket_order_id && row.status !== "cancelled" && (
+                          <button
+                            onClick={() => setAwbFor(row)}
+                            aria-label={`Change the AWB number of ${row.order_number}`}
+                            className="ml-2 text-[10.5px] text-fog underline-offset-2 hover:text-rose-600 hover:underline"
                           >
-                            {row.awb_code}
-                          </a>
-                        </span>
-                      ) : row.shiprocket_shipment_id ? (
+                            Change
+                          </button>
+                        )}
+                      </span>
+                    ) : row.status === "cancelled" ? (
+                      <span className="text-[11px] text-fog">—</span>
+                    ) : row.shiprocket_order_id ? (
+                      shipping.enabled && row.shiprocket_shipment_id ? (
                         <button
                           onClick={() => ship(row, "awb")}
                           disabled={shipBusy === row.id}
@@ -291,22 +309,34 @@ export default function AdminOrders() {
                           {shipBusy === row.id ? "…" : "Assign courier"}
                         </button>
                       ) : (
+                        <span className="text-[11px] text-fog">With Shiprocket</span>
+                      )
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {shipping.enabled && (
+                          <button
+                            onClick={() => ship(row, "push")}
+                            disabled={shipBusy === row.id}
+                            className="whitespace-nowrap rounded-full border border-blush-200 px-3 py-1 text-[11px] text-cocoa hover:bg-blush-100 disabled:opacity-60"
+                          >
+                            {shipBusy === row.id ? "…" : "Send to Shiprocket"}
+                          </button>
+                        )}
                         <button
-                          onClick={() => ship(row, "push")}
-                          disabled={shipBusy === row.id}
-                          className="rounded-full border border-blush-200 px-3 py-1 text-[11px] text-cocoa hover:bg-blush-100 disabled:opacity-60"
+                          onClick={() => setAwbFor(row)}
+                          className="whitespace-nowrap rounded-full border border-blush-200 px-3 py-1 text-[11px] text-cocoa hover:bg-blush-100"
                         >
-                          {shipBusy === row.id ? "…" : "Send to Shiprocket"}
+                          + Add AWB
                         </button>
-                      )}
-                    </td>
-                  )}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3 text-right font-medium text-ink">{money(row.total)}</td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={shipping.enabled ? 8 : 7} className="py-10 text-center text-fog">
+                  <td colSpan={8} className="py-10 text-center text-fog">
                     No orders found.
                   </td>
                 </tr>
@@ -343,6 +373,18 @@ export default function AdminOrders() {
             ✕
           </button>
         </div>
+      )}
+
+      {awbFor && (
+        <AwbDialog
+          order={awbFor}
+          onClose={() => setAwbFor(null)}
+          onSaved={(message) => {
+            setAwbFor(null);
+            setShipNotice(message);
+            load();
+          }}
+        />
       )}
 
       {selected && (

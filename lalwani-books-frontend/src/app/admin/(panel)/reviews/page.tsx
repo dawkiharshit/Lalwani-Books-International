@@ -107,7 +107,7 @@ export default function AdminReviews() {
             <article key={r.id} className="card px-6 py-5">
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-[13px] font-semibold text-ink">{r.name}</p>
-                <Stars rating={r.rating} className="h-3 w-3" />
+                <Stars rating={r.rating} />
                 {r.product &&
                   (STOREFRONT_URL ? (
                     <a

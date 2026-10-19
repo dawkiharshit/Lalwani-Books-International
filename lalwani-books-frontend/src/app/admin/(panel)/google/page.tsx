@@ -20,6 +20,7 @@ export default function AdminGoogle() {
   return (
     <IntegrationPanel
       group="google"
+      disconnect={{ name: "Google sign-in", note: "The “Continue with Google” button disappears from the sign-in pages until you connect again." }}
       title="Sign in with Google"
       blurb="Lets customers sign in with their Google account instead of a password. Google confirms the address, so those accounts skip the email code."
       sectionTitle="Google — customer sign-in"

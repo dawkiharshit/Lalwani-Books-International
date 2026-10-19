@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { clientApi, ApiError } from "@/admin/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { apiUpload, clientApi, ApiError } from "@/admin/lib/api";
 import { Spinner, Stars } from "@/admin/components/ui";
 import { Select } from "@/admin/components/Select";
 
@@ -14,9 +14,14 @@ interface Row {
   rating: number;
   is_active: boolean;
   sort_order: number;
+  /** The reader's picture, shown beside the quote on the home page. */
+  photo: string | null;
 }
 
 const EMPTY = { name: "", designation: "Verified buyer", location: "", content: "", rating: "5" };
+/** Pictures the form accepts, matching what the API allows. */
+const PHOTO_TYPES = "image/jpeg,image/png,image/webp";
+const PHOTO_MAX_MB = 4;
 
 export default function AdminTestimonials() {
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -25,6 +30,11 @@ export default function AdminTestimonials() {
   const [editing, setEditing] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // The picture chosen for the testimonial being written, and the one already
+  // saved on the one being edited.
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoSaved, setPhotoSaved] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     clientApi<{ data: Row[] }>("/admin/testimonials")
@@ -62,13 +72,22 @@ export default function AdminTestimonials() {
       rating: Number(form.rating),
     };
     try {
-      if (editing) {
+      if (photo) {
+        // A picture can only be sent as multipart, which PHP does not read on
+        // a PUT — so a photo always goes by POST (see the API's routes).
+        const fd = new FormData();
+        Object.entries(body).forEach(([k, v]) => fd.append(k, v === null ? "" : String(v)));
+        fd.append("photo", photo);
+        await apiUpload(editing ? `/admin/testimonials/${editing}` : "/admin/testimonials", fd);
+      } else if (editing) {
         await clientApi(`/admin/testimonials/${editing}`, { method: "PUT", body });
       } else {
         await clientApi("/admin/testimonials", { method: "POST", body });
       }
       setForm(EMPTY);
       setEditing(null);
+      setPhoto(null);
+      setPhotoSaved(null);
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Save failed.");
@@ -86,6 +105,8 @@ export default function AdminTestimonials() {
       content: t.content,
       rating: String(t.rating),
     });
+    setPhoto(null);
+    setPhotoSaved(t.photo);
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -93,6 +114,34 @@ export default function AdminTestimonials() {
   function cancelEdit() {
     setEditing(null);
     setForm(EMPTY);
+    setPhoto(null);
+    setPhotoSaved(null);
+  }
+
+  /** Checked here as well as on the server, so a wrong file says so at once. */
+  function choosePhoto(chosen: File | undefined) {
+    if (!chosen) return;
+    if (!PHOTO_TYPES.split(",").includes(chosen.type)) {
+      setError("Choose a JPG, PNG or WebP picture.");
+      return;
+    }
+    if (chosen.size > PHOTO_MAX_MB * 1024 * 1024) {
+      setError(`That picture is over ${PHOTO_MAX_MB} MB. Choose a smaller one.`);
+      return;
+    }
+    setError("");
+    setPhoto(chosen);
+  }
+
+  async function removePhoto() {
+    if (!editing) {
+      setPhoto(null);
+      return;
+    }
+    await clientApi(`/admin/testimonials/${editing}/photo`, { method: "DELETE" });
+    setPhoto(null);
+    setPhotoSaved(null);
+    load();
   }
 
   async function toggle(t: Row) {
@@ -111,8 +160,10 @@ export default function AdminTestimonials() {
       <div>
         <h1 className="font-serif text-[1.6rem] text-ink">Testimonials</h1>
         <p className="mt-1 text-[12px] text-fog">
-          Shown one at a time in the testimonials band on the home page — name, role, location, stars
-          and quote (rename or hide the band in Home Page). Hide one and it disappears from the website.
+          Shown as cards in the testimonials band on the home page and the About page — photo,
+          name, role, location, stars and quote (rename or hide the band in Home Page). Two rows
+          show at a time and the band slides on to the next set by itself; up to twelve live ones
+          are shown. Hide one and it disappears from the website.
         </p>
       </div>
       {error && <p className="rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{error}</p>}
@@ -158,6 +209,53 @@ export default function AdminTestimonials() {
           <p className="mt-1 text-[11px] text-fog">Shown after the role. Optional.</p>
         </div>
         <div className="sm:col-span-2">
+          <p className="mb-1 block text-[11px] font-medium text-cocoa">Photo</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blush-100 text-[11px] text-fog">
+              {photo ? (
+                // eslint-disable-next-line @next/next/no-img-element -- the file just chosen, not yet uploaded
+                <img src={URL.createObjectURL(photo)} alt="" className="h-full w-full object-cover" />
+              ) : photoSaved ? (
+                // eslint-disable-next-line @next/next/no-img-element -- one small picture from our own storage
+                <img src={photoSaved} alt="" className="h-full w-full object-cover" />
+              ) : (
+                "None"
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => photoInput.current?.click()}
+              className="rounded-full border border-blush-200 px-4 py-1.5 text-[12px] text-cocoa hover:bg-blush-100"
+            >
+              {photo || photoSaved ? "Change photo" : "Upload photo"}
+            </button>
+            {(photo || photoSaved) && (
+              <button
+                type="button"
+                onClick={removePhoto}
+                className="rounded-full px-3 py-1.5 text-[12px] text-red-500 hover:bg-red-50"
+              >
+                Remove
+              </button>
+            )}
+            <input
+              ref={photoInput}
+              type="file"
+              accept={PHOTO_TYPES}
+              className="hidden"
+              aria-label="Choose a photo for this testimonial"
+              onChange={(e) => {
+                choosePhoto(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          <p className="mt-1 text-[11px] text-fog">
+            The reader&rsquo;s picture, shown beside the quote. JPG, PNG or WebP, up to {PHOTO_MAX_MB} MB. Without one,
+            their initials are shown.
+          </p>
+        </div>
+        <div className="sm:col-span-2">
           <label className="mb-1 block text-[11px] font-medium text-cocoa">Quote</label>
           <textarea
             required
@@ -198,11 +296,15 @@ export default function AdminTestimonials() {
           {rows.map((t) => (
             <article key={t.id} className="card px-6 py-5">
               <div className="flex flex-wrap items-center gap-3">
+                {t.photo && (
+                  // eslint-disable-next-line @next/next/no-img-element -- one small picture from our own storage
+                  <img src={t.photo} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                )}
                 <p className="text-[13px] font-semibold text-ink">{t.name}</p>
                 {(t.designation || t.location) && (
                   <span className="text-[11px] text-fog">{[t.designation, t.location].filter(Boolean).join(", ")}</span>
                 )}
-                <Stars rating={t.rating} className="h-3 w-3" />
+                <Stars rating={t.rating} />
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                     t.is_active ? "bg-green-100 text-green-700" : "bg-blush-100 text-fog"

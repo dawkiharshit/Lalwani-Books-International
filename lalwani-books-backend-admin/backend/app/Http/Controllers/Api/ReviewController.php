@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Support\Media;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
@@ -13,6 +14,8 @@ class ReviewController extends Controller
         $product = Product::active()->where('slug', $slug)->firstOrFail();
 
         $reviews = $product->approvedReviews()
+            // For the reviewer's own profile picture (My account → photo).
+            ->with('user:id,avatar')
             ->orderByDesc('created_at')
             ->paginate(6);
 
@@ -23,6 +26,10 @@ class ReviewController extends Controller
                 'rating' => $r->rating,
                 'title' => $r->title,
                 'body' => $r->body,
+                // Only a photo the customer uploaded here (My account → Profile
+                // photo). A Google sign-in's own picture was never offered for
+                // public display, so it is not put next to their reviews.
+                'photo' => Media::isOurs($r->user?->avatar) ? Media::url($r->user->avatar) : null,
                 'created_at' => $r->created_at->toIso8601String(),
             ])->values(),
             'meta' => [

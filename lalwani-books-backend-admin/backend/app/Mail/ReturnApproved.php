@@ -36,6 +36,10 @@ class ReturnApproved extends Mailable
         $return = $this->return->loadMissing('order');
         $order = $return->order;
         $replacement = $return->type === 'replacement';
+        // The refund agreed when it was approved, as the refund email writes it.
+        $amount = ! $replacement && $return->refund_amount
+            ? '₹'.number_format((float) $return->refund_amount, 2)
+            : null;
 
         return new Content(
             view: 'emails.return-approved',
@@ -46,9 +50,11 @@ class ReturnApproved extends Mailable
                 'name' => explode(' ', trim((string) $order?->ship_name))[0] ?: 'there',
                 'kind' => $replacement ? 'Replacement' : 'Refund',
                 'pickupBooked' => (bool) $return->sr_return_shipment_id,
+                'amount' => $amount,
                 'body' => $replacement
                     ? 'Good news — we have approved your replacement request. Once the item is back with us, we will send the replacement out.'
-                    : 'Good news — we have approved your return request. Once the item is back with us and checked, we will process your refund to '
+                    : 'Good news — we have approved your return request. Once the item is back with us and checked, we will process your refund'
+                        .($amount ? ' of '.$amount : '').' to '
                         .($order?->payment_method === 'cod' ? 'the UPI ID or bank account you gave us' : 'your original payment method')
                         .', and it should reach you within '.\App\Models\Order::REFUND_DAYS.' working days.',
                 'note' => trim((string) $this->note),

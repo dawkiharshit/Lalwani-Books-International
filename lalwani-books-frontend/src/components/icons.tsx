@@ -159,6 +159,13 @@ export const WhatsAppIcon = ({ className, strokeWidth }: IconProps) => (
   </svg>
 );
 
+export const MicIcon = ({ className, strokeWidth }: IconProps) => (
+  <svg {...base(className, strokeWidth)}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+  </svg>
+);
+
 /** Decorative bottle outline — for section backdrops. */
 export const BottleMark = ({ className, strokeWidth }: IconProps) => (
   <svg {...base(className, strokeWidth ?? 0.7)} viewBox="0 0 24 24">

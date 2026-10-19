@@ -374,9 +374,12 @@ export default function CheckoutPage() {
       }
 
       sessionStorage.setItem("lalwani_last_order", JSON.stringify(res.data));
-      await refresh();
+      // Straight to the thank-you page; the emptied basket catches up behind
+      // it. Waiting here also meant waiting for the order emails, which are
+      // sent right after the order is saved.
       startNavigation(`/checkout/success/${res.data.order_number}`);
       router.push(`/checkout/success/${res.data.order_number}`);
+      void refresh();
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -528,10 +531,11 @@ export default function CheckoutPage() {
               {field("ship_zip", "PIN code", { required: true, inputMode: "numeric", maxLength: 6, autoComplete: "postal-code" })}
               {field("ship_country", "Country", { required: true, autoComplete: "country-name" })}
               <div className="sm:col-span-2">
-                <label className="mb-1 block text-[11px] font-medium text-cocoa">
+                <label htmlFor="ship-notes" className="mb-1 block text-[11px] font-medium text-cocoa">
                   Delivery notes (optional)
                 </label>
                 <textarea
+                  id="ship-notes"
                   value={form.notes}
                   onChange={(e) => set("notes", e.target.value)}
                   rows={2}
@@ -612,6 +616,7 @@ export default function CheckoutPage() {
               value={couponInput}
               onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
               placeholder="Coupon code"
+              aria-label="Coupon code"
               className="input-base flex-1 uppercase"
             />
             <button

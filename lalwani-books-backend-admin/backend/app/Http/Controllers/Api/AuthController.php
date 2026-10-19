@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\EmailOtp;
 use App\Support\MailConfig;
+use App\Support\Media;
 use App\Support\PasswordOtp;
 use App\Support\SignupOtp;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -359,31 +361,29 @@ class AuthController extends Controller
         ]);
     }
 
-    /** Best effort: a notice to the address an account just moved away from. */
+    /**
+     * Best effort: a notice to the address an account just moved away from,
+     * sent once the customer has their answer.
+     */
     private function notifyEmailChanged(string $previous, User $user): void
     {
         if (! MailConfig::deliverable()) {
             return;
         }
 
-        try {
-            MailConfig::apply();
-            $store = \App\Models\Setting::get('site_name', 'Lalwani Books International');
-            $support = (string) \App\Models\Setting::get('support_email', '');
+        $store = \App\Models\Setting::get('site_name', 'Lalwani Books International');
+        $support = (string) \App\Models\Setting::get('support_email', '');
 
-            \Illuminate\Support\Facades\Mail::raw(
-                "Hi {$user->name},\n\n"
-                ."The email address on your {$store} account was changed to {$user->email}.\n\n"
-                ."If you made this change, you can ignore this message. If you did not, "
-                .'please contact us right away'.($support !== '' ? " at {$support}" : '').'.',
-                fn ($m) => $m->to($previous)->subject("{$store} — your account email was changed")
-            );
-        } catch (\Throwable $e) {
-            Log::warning('Email-change notice could not be sent', [
-                'user' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        \App\Support\MailLater::raw(
+            $previous,
+            "{$store} — your account email was changed",
+            "Hi {$user->name},\n\n"
+            ."The email address on your {$store} account was changed to {$user->email}.\n\n"
+            ."If you made this change, you can ignore this message. If you did not, "
+            .'please contact us right away'.($support !== '' ? " at {$support}" : '').'.',
+            'Email-change notice',
+            ['user' => $user->id]
+        );
     }
 
     public function updatePassword(Request $request)
@@ -418,6 +418,43 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * The customer's own profile picture, shown beside their reviews. An
+     * upload replaces whatever was there, including a Google picture.
+     */
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            // A real picture file, checked by its contents, not its name.
+            'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+        ], [], ['file' => 'photo']);
+
+        $user = $request->user();
+        $this->deleteAvatarFile($user);
+        // forceFill: `avatar` is left out of the model's fillable list on
+        // purpose, so no ordinary save can set it from request data.
+        $user->forceFill(['avatar' => 'storage/'.$request->file('file')->store('avatars', 'public')])->save();
+
+        return response()->json(['user' => $this->userPayload($user->fresh())]);
+    }
+
+    public function destroyAvatar(Request $request)
+    {
+        $user = $request->user();
+        $this->deleteAvatarFile($user);
+        $user->forceFill(['avatar' => null])->save();
+
+        return response()->json(['user' => $this->userPayload($user->fresh())]);
+    }
+
+    /** Only our own uploads are deleted; a Google picture is not ours to remove. */
+    private function deleteAvatarFile(User $user): void
+    {
+        if (Media::isOurs($user->avatar)) {
+            Storage::disk('public')->delete(substr((string) $user->avatar, strlen('storage/')));
+        }
+    }
+
     private function userPayload(User $user): array
     {
         return [
@@ -426,8 +463,10 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'is_admin' => (bool) $user->is_admin,
+            // A staff member's areas (admin → Staff), so the panel shows only those.
+            'staff' => ($staff = \App\Support\StaffAccess::member($user)) ? ['areas' => $staff['areas']] : null,
             'email_verified' => (bool) $user->email_verified_at,
-            'avatar' => $user->avatar,
+            'avatar' => Media::url($user->avatar),
             // Google accounts have no password, so the UI must not offer
             // "change password" to them.
             'has_password' => $user->password !== null,
