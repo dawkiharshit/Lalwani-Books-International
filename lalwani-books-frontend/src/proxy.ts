@@ -48,6 +48,26 @@ async function maintenanceOn(): Promise<boolean> {
   return state.on;
 }
 
+/*
+ * "noindex" on every page while the shop runs on its own address beside the
+ * old store (app.lalwanibooks.com next to lalwanibooks.com). robots.txt
+ * already asks crawlers to stay out, but that only stops them reading the
+ * pages: an address someone links to from elsewhere can still be listed. This
+ * header is the part that keeps the new shop out of the results, so Google
+ * never counts it as a second copy of the old shop and the old shop keeps its
+ * places in search.
+ *
+ * Set ALLOW_SEARCH_ENGINES=false to switch it on. It is read each time the
+ * server starts, so removing the setting and restarting the app is enough on
+ * the day this shop takes over the main address.
+ */
+function hiddenFromSearch(res: NextResponse): NextResponse {
+  if (process.env.ALLOW_SEARCH_ENGINES === "false") {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return res;
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -61,16 +81,16 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/revalidate") ||
     pathname.startsWith("/api")
   ) {
-    return NextResponse.next();
+    return hiddenFromSearch(NextResponse.next());
   }
 
   if (await maintenanceOn()) {
     const url = req.nextUrl.clone();
     url.pathname = "/maintenance";
-    return NextResponse.rewrite(url);
+    return hiddenFromSearch(NextResponse.rewrite(url));
   }
 
-  return NextResponse.next();
+  return hiddenFromSearch(NextResponse.next());
 }
 
 export const config = {

@@ -28,15 +28,19 @@ interface Params {
   slug: string;
 }
 
-export async function generateStaticParams() {
-  try {
-    const res = await api<Paginated<ProductCardType>>("/products?per_page=48", {
-      revalidate: 300,
-    });
-    return res.data.map((p) => ({ slug: p.slug }));
-  } catch {
-    return [];
-  }
+/**
+ * No book page is built while the site is being published — each one is built
+ * the first time somebody opens it, and then kept ready for everyone else
+ * (revalidate, above).
+ *
+ * Building them all up front asked the server for every book at once, and the
+ * one request it could not answer in time stopped the whole publish with
+ * "Server Error". It would also get slower with every book added — the shop
+ * is heading for well over a thousand — for the sake of one visitor's first
+ * visit, which takes a fraction of a second anyway.
+ */
+export function generateStaticParams() {
+  return [];
 }
 
 /**

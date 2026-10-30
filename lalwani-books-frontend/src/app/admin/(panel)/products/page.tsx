@@ -83,6 +83,8 @@ export default function AdminProducts() {
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [error, setError] = useState("");
+  /** What just happened, e.g. a book deleted. Cleared by the next action. */
+  const [notice, setNotice] = useState("");
 
   const days = chosenDays(listed, day, from, to);
   const filtered = Boolean(search || days.listed_from || days.listed_to || sort !== "name");
@@ -120,6 +122,7 @@ export default function AdminProducts() {
   }, [load]);
 
   async function toggleActive(row: Row) {
+    setNotice("");
     await clientApi(`/admin/products/${row.id}`, {
       method: "PUT",
       body: {
@@ -128,6 +131,32 @@ export default function AdminProducts() {
       },
     });
     load();
+  }
+
+  /**
+   * Delete a book for good. Archive is the everyday way to take one off the
+   * shop, so this says plainly what it does and what it leaves alone before
+   * anything happens.
+   */
+  async function remove(row: Row) {
+    setNotice("");
+    const sure = window.confirm(
+      `Delete “${row.name}” for good?\n\n` +
+        "Its photos and reviews go with it, and it disappears from the shop.\n" +
+        "Orders already placed keep their record of it.\n\n" +
+        "To take it off the shop but keep it, press Cancel and use Archive instead."
+    );
+    if (!sure) return;
+    try {
+      const res = await clientApi<{ message: string }>(`/admin/products/${row.id}`, { method: "DELETE" });
+      setError("");
+      setNotice(res.message);
+      load();
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? `Could not delete that book: ${err.message}` : "Could not delete that book. Please try again."
+      );
+    }
   }
 
   /** Every change starts again from the first page, or the list looks empty. */
@@ -260,6 +289,11 @@ export default function AdminProducts() {
       </div>
 
       {error && <p className="rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{error}</p>}
+      {notice && (
+        <p role="status" className="rounded-xl bg-emerald-50 px-4 py-2.5 text-[12px] text-emerald-700">
+          {notice}
+        </p>
+      )}
 
       <div className="card overflow-x-auto p-6">
         {!rows ? (
@@ -316,6 +350,9 @@ export default function AdminProducts() {
                     </Link>
                     <button onClick={() => toggleActive(row)} className="text-fog hover:text-ink">
                       {row.is_active ? "Archive" : "Restore"}
+                    </button>
+                    <button onClick={() => remove(row)} className="ml-3 text-red-500 hover:underline">
+                      Delete
                     </button>
                   </td>
                 </tr>

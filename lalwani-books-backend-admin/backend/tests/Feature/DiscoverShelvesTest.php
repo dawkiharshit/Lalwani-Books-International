@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\GiftIdeas;
@@ -97,7 +98,8 @@ class DiscoverShelvesTest extends TestCase
     {
         $bestseller = $this->create(['is_bestseller' => true]);
         $gift = $this->create(['is_gift_idea' => true]);
-        $this->deleteJson("/api/v1/admin/products/{$gift}")->assertOk();
+        // Taken off sale, not deleted — Delete is its own thing (ProductDeleteTest).
+        Product::whereKey($gift)->update(["is_active" => false]);
 
         $shelf = $this->shelf('gift');
         $this->assertNotContains($gift, $shelf);

@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Author;
 use App\Models\Publisher;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Support\GiftIdeas;
 use App\Support\YouTube;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -175,11 +177,44 @@ class AdminProductController extends Controller
         return $gift;
     }
 
+    /**
+     * Remove a book for good — admin → Products → Delete, for one the shop
+     * will not sell again. Archive (the other button) is the everyday way to
+     * take a book off the shop while keeping it.
+     *
+     * Its photos, gallery, video, reviews, wishlist entries and any cart line
+     * go with it. Past orders do not: each order line keeps the name and
+     * price it was bought at and simply stops pointing at a book that is no
+     * longer there, so order history and invoices read exactly as before.
+     */
     public function destroy(Product $product)
     {
-        $product->update(['is_active' => false]);
+        $name = $product->name;
 
-        return response()->json(['message' => 'Product archived.']);
+        foreach ([$product->image, $product->video_path] as $file) {
+            self::deleteFile($file);
+        }
+        foreach ($product->images as $image) {
+            self::deleteFile($image->path);
+        }
+
+        // The two places a book is named outside its own row.
+        GiftIdeas::mark($product->id, false);
+        if (Setting::get('spotlight_product_slug') === $product->slug) {
+            Setting::set('spotlight_product_slug', '');
+        }
+
+        $product->delete();
+
+        return response()->json(['message' => "“{$name}” has been deleted."]);
+    }
+
+    /** An uploaded file of ours, off the disk. Outside links are left alone. */
+    private static function deleteFile(?string $path): void
+    {
+        if ($path && str_starts_with($path, 'storage/')) {
+            Storage::disk('public')->delete(substr($path, strlen('storage/')));
+        }
     }
 
     /**

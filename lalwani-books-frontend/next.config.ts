@@ -20,9 +20,18 @@ const nextConfig: NextConfig = {
   // for each made-up /product/… link, and an entry for each new ?search= —
   // so a script requesting random addresses could fill the server's disk.
   // Pages built by `next build` are still read from disk as before.
+  //
+  // cpus: how many helper processes `next build` may start while it renders
+  // the pages ("Collecting page data"). Left alone, Next.js starts one per
+  // processor it can see — on shared hosting that is the whole machine's 64,
+  // so it tried to start 63, each with its own compiler threads, and the
+  // server refused ("Resource temporarily unavailable", error 11) and killed
+  // the build. Two is plenty for 94 pages and keeps the build well inside
+  // what the hosting plan allows.
   experimental: {
     staleTimes: { static: 30 },
     isrFlushToDisk: false,
+    cpus: 2,
   },
   // Dev only: allow the dev server (HMR, RSC, chunks) to be reached from these
   // hosts. Next 16 blocks cross-origin dev requests by default, so opening the
